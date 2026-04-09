@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsersIan.claude -type f -name *gsd* -o -name *GSD*)",
+      "Bash(find C:UsersIan.claude -name *gsd* -o -name *GSD* -o -name get-shit-done)",
+      "Bash(for dir:*)",
+      "Bash(do rm:*)",
+      "Bash(done)",
+      "Bash(for file:*)",
+      "Bash(cd:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
+  }
+}
