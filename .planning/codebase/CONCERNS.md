@@ -1,16 +1,17 @@
-# System Concerns
+# Preocupações e Riscos
 
-## Security
-- **Authentication**: No authentication or authorization is currently implemented in the API. Any user can create/modify clients and appointments.
-- **CORS**: `CORS(app, resources={r"/api/*": {"origins": "*" }})` allows requests from any origin, which is safe for development but requires lockdown for production.
-- **Data Privacy**: Telephones and names are stored in plain text with no encryption or access control.
+## Segurança
+- **FCM Credentials**: O arquivo `firebase-service-account.json` contém chaves privadas e **NUNCA** deve ser commitado no repositório público (deve estar no `.gitignore`).
+- **CORS**: Atualmente permite `*`. Deve ser restrito para o domínio de produção no futuro.
+- **Exposição de Endpoints Públicos**: `/api/public` permite criação de agendamentos sem login. Implementar rate-limiting para evitar spam de agendamentos falsos.
 
-## Architecture
-- **Fat Entrypoint**: Most of the API logic is currently in `app.py`. As the project grows, this should be refactored into the existing but empty `routes/` directory.
-- **Database Scalability**: SQLite is used. While excellent for development and small-scale use, migration to a production database (e.g., PostgreSQL) will be necessary for multi-user or high-traffic environments.
-- **Concurrency**: SQLite has limitations with concurrent write access, which might affect multiple barbers using the system simultaneously in the future.
+## Arquitetura e Escalabilidade
+- **Concorrência de Horários**: Slots de 30 min podem sofrer condições de corrida se dois clientes agendarem ao mesmo tempo via chat. Implementar bloqueio pessimista ou validação rigorosa pré-commit.
+- **Migração SQLite**: Para produção real com muitos acessos simultâneos, o SQLite pode apresentar `Database is locked`. Migrar para PostgreSQL via SQLAlchemy no momento oportuno.
 
-## Maintenance
-- **Dependency Versioning**: `requirements.txt` contains loose dependencies (e.g., `flask`, `flask-cors`). Specific versions should be pinned for stability.
-- **Frontend State**: While `provider` is used, complex state transitions (like conflict detection for schedules) may require more robust state management or dedicated backend validation.
-- **Error Handling**: API error handling is basic. More descriptive error messages and consistent JSON error envelopes would improve frontend resilience.
+## Tecnológico
+- **Python 3.14**: Acompanhar mudanças na linguagem para garantir que o uso de `async` ou mudanças no Global Interpreter Lock (GIL) não afetem o comportamento da API Flask.
+- **Build Flutter Windows**: Garantir que as dependências nativas para notificações push funcionem corretamente no ambiente Windows Desktop.
+
+## Experiência do Usuário
+- **Chat Sem Estado**: Se o cliente fechar o chat, ele perde o contexto. Considerar salvar temporariamente no localStorage se o fluxo for longo.

@@ -1,22 +1,31 @@
-# Technology Stack
+# Stack de Tecnologia
 
 ## Backend
-- **Language**: Python 3.x
+- **Linguagem**: Python 3.x (Meta: Compatibilidade total com Python 3.14)
 - **Framework**: Flask (Microframework)
-- **Database**: SQLite (File-based database)
-- **Extensions**:
-  - `flask-cors`: For Cross-Origin Resource Sharing (crucial for Flutter web/mobile)
-  - `sqlite3`: Standard library for database interaction
+- **Banco de Dados**: SQLite (Baseado em arquivo, gerenciado via SQLAlchemy)
+- **Extensões e Bibliotecas**:
+  - `Flask-SQLAlchemy`: ORM para interação com banco de dados.
+  - `flask-cors`: Para Compartilhamento de Recursos de Origem Cruzada.
+  - `PyJWT`: Para autenticação via tokens JWT.
+  - `firebase-admin`: SDK do Firebase para notificações push (FCM).
+  - `python-dotenv`: Gerenciamento de variáveis de ambiente.
 
-## Frontend
+## Frontend (Desktop/Mobile)
 - **Framework**: Flutter (Cross-platform UI toolkit)
-- **Language**: Dart
-- **State Management**: Provider
-- **Networking**: `http` package for REST API calls
-- **Utilities**:
-  - `intl`: Internationalization and date formatting
-  - `flutter_dotenv`: Environment variable management
+- **Linguagem**: Dart
+- **Gerenciamento de Estado**: Provider
+- **Rede**: pacote `http` para chamadas REST API
+- **Utilitários**:
+  - `intl`: Internacionalização e formatação de datas
+  - `flutter_dotenv`: Gerenciamento de variáveis de ambiente
+  - `firebase_messaging`: (Planejado/Integrado) Recebimento de notificações push
 
-## Development Tools
-- **Package Managers**: `pip` (Python), `pub` (Dart/Flutter)
-- **Testing**: `pytest` (Backend), standard Flutter testing tools (Frontend)
+## Chat do Cliente (Web)
+- **Tecnologia**: HTML/JavaScript (Vanilla)
+- **Integração**: Interface estática servida pelo Flask que se comunica com endpoints públicos.
+
+## Ferramentas de Desenvolvimento
+- **Gerenciadores de Pacotes**: `pip` (Python), `pub` (Dart/Flutter)
+- **Testes**: `pytest` (Backend)
+- **GSD**: Sistema de Gestão de Desenvolvimento para automação e planejamento.

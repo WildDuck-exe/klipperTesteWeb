@@ -1,28 +1,41 @@
-# Integrations
+# Integrações
 
-## Internal Integrations
+## Integrações Internas
 
 ### Frontend ↔ Backend
-The Flutter frontend communicates with the Flask backend via a REST API.
-- **Communication Protocol**: HTTP/HTTPS
-- **Data Format**: JSON
-- **Base URL**: Configured via `.env` (default: `http://localhost:5000`)
+O frontend Flutter e o Chat Web se comunicam com o backend Flask via API REST.
+- **Protocolo**: HTTP/HTTPS
+- **Formato**: JSON
+- **Autenticação**: Header `Authorization: Bearer <JWT_TOKEN>` (Exceto endpoints públicos).
 
-### API Endpoints
-- **Status Check**: `GET /` - Health check and version info.
-- **Clients**:
-  - `GET /api/clientes` - List all clients.
-  - `GET /api/clientes/<id>` - Get specific client details.
-  - `POST /api/clientes` - Create a new client.
-- **Services**:
-  - `GET /api/servicos` - List all services offered.
-  - `POST /api/servicos` - Create a new service.
-- **Appointments (Agendamentos)**:
-  - `GET /api/agendamentos` - List all appointments.
-  - `POST /api/agendamentos` - Create a new appointment.
-  - `PUT /api/agendamentos/<id>/concluir` - Mark appointment as completed.
-  - `PUT /api/agendamentos/<id>/cancelar` - Mark appointment as cancelled.
-  - `GET /api/agenda/hoje` - Daily agenda for current date.
+### Endpoints da API
 
-## External Integrations
-- **None currently documented**: The application appears self-contained using local SQLite.
+#### Autenticação (`/api/auth`)
+- `POST /api/auth/login`: Realiza o login e retorna o token JWT.
+
+#### Clientes (`/api/clientes`) [Privado]
+- `GET /api/clientes`: Lista todos os clientes.
+- `POST /api/clientes`: Cria um novo cliente.
+
+#### Serviços (`/api/servicos`) [Privado/Público]
+- `GET /api/servicos`: Lista privada de serviços.
+- `GET /api/public/servicos`: Lista pública para o chat.
+
+#### Agendamentos (`/api/agendamentos`) [Privado]
+- `GET /api/agendamentos`: Lista total de agendamentos.
+- `PUT /api/agendamentos/<id>/concluir`: Marca como concluído.
+
+#### Chat Público (`/api/public`)
+- `GET /api/public/horarios`: Verifica disponibilidade de slots de 30 min.
+- `POST /api/public/agendar`: Cria agendamento via chat (Gera notificação push).
+
+## Integrações Externas
+
+### Firebase Cloud Messaging (FCM)
+- **Objetivo**: Notificações em tempo real para o barbeiro sobre novos agendamentos.
+- **Implementação**: SDK `firebase-admin` no backend enviando mensagens multicast para tokens registrados na tabela `push_tokens`.
+- **Credenciais**: `firebase-service-account.json`.
+
+### Chat do Cliente
+- **Interface**: HTML estático em `static/chat/`.
+- **Comunicação**: Chamadas diretas para `/api/public/` para evitar necessidade de autenticação pelo cliente final.

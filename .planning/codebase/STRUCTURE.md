@@ -1,28 +1,30 @@
-# Codebase Structure
+# Estrutura da Base de Código
 
-## Root
-- `barbearia-backend/`: The Python Flask API.
-- `barbearia-frontend/`: The Flutter Mobile/Web app.
-- `docs/`: Project documentation (Postman collections, etc.).
-- `.planning/`: GSD system directory (contains this map).
+## Raiz
+- `barbearia-backend/`: API Flask em Python.
+- `barbearia-frontend/`: Aplicativo Flutter.
+- `docs/`: Documentação e ativos do projeto.
+- `.planning/`: Sistema GSD (Contratos, Roadmap, Estado).
 
 ## Backend (`barbearia-backend/`)
-- `app.py`: Main application entry point and API routes.
-- `run.py`: Script to start the development server.
-- `config.py`: Configuration settings.
-- `init_db_simple.py`: Basic database initialization script.
-- `models/`: Data models for Clientes, Servicos, and Agendamentos.
-- `database/`: Contains the SQLite `.db` file (post-initialization).
-- `routes/`: (Placeholder) Currently empty; routes reside in `app.py`.
-- `tests/`: Pytest suite for API verification.
-- `utils/`: Common utilities.
+- `app.py`: Inicialização do app e rotas estáticas para o chat.
+- `config.py`: Configurações de ambiente (Database, JWT, Firebase).
+- `firebase-service-account.json`: Credenciais privadas do Firebase.
+- `models/`: Definições SQLAlchemy.
+  - `push_token.py`: Armazenamento de tokens FCM.
+  - `agendamento.py`, `cliente.py`, `servico.py`, `usuario.py`.
+- `routes/`: Lógica de endpoints (Blueprints).
+  - `public.py`: Endpoints para o chat de agendamento.
+  - `auth.py`, `clientes.py`, `servicos.py`, `agendamentos.py`.
+- `static/chat/`: Frontend web simplificado para clientes.
+- `utils/notifications.py`: Wrapper para o Firebase Admin SDK.
+- `database/`: Diretório do banco SQLite.
 
 ## Frontend (`barbearia-frontend/`)
-- `lib/`: Main source code.
-  - `main.dart`: Application entry point.
-  - `services/`: API communication layer.
-  - `screens/`: Application pages (Home, Clientes, etc.).
-  - `widgets/`: Reusable UI components.
-- `pubspec.yaml`: Dependency management.
-- `assets/`: Image and font assets.
-- `.env`: Environment variables (API URLs).
+- `lib/`:
+  - `main.dart`: Ponto de entrada.
+  - `services/api_service.dart`: Comunicação com o backend.
+  - `providers/`: Gerenciamento de estado.
+  - `screens/`: Telas (Login, Dashboard, Agendamentos).
+- `assets/`: Logos e imagens do "Ponto do Corte".
+- `web/`, `windows/`: Pastas de build específicas de plataforma.

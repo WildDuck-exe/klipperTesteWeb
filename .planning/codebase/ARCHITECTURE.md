@@ -1,22 +1,27 @@
-# Architecture
+# Arquitetura
 
-## System Overview
-The system follows a classic **Client-Server Architecture** designed for a digital barber shop management system.
+## Visão Geral do Sistema
+O sistema "Ponto do Corte" utiliza uma arquitetura descentralizada com um backend centralizador que serve tanto uma aplicação administrativa (Flutter) quanto uma interface de agendamento rápido (Chat Web).
 
-## Backend Architecture (Flask)
-- **Pattern**: Monolithic REST API.
-- **Data Access**: Direct logic in `app.py` and helpers in `database/`. Even though `models/` exists, the core API logic currently resides in `app.py` for simplicity.
-- **Database**: Relational (SQLite) with tables for `clientes`, `servicos`, and `agendamentos`.
-- **Integrations**: Cross-Origin Resource Sharing (CORS) enabled to allow Flutter app interaction.
+## Arquitetura do Backend (Flask)
+- **Monolito Modular**: Uso de Blueprints para separação de preocupações (auth, clientes, servicos, agendamentos, public).
+- **Camada de Modelos**: SQLAlchemy ORM gerenciando o banco SQLite.
+- **Notificações**: Módulo de notificações desacoplado que utiliza o SDK do Firebase.
+- **Serviço Estático**: O Flask serve a interface de chat (`/chat`) diretamente do diretório `static/`.
 
-## Frontend Architecture (Flutter)
-- **Pattern**: Widget-based UI with Provider for state management.
-- **Service Layer**: `api_service.dart` handles abstraction of HTTP calls.
-- **Navigation**: Imperative routing between screens (Home, Clientes, Servicos, etc.).
-- **Responsiveness**: Built using Flutter's layout system, suitable for mobile and potentially web/desktop.
+## Arquitetura do Frontend (Flutter)
+- **Gerenciamento de Estado**: Provider para propagação de dados de autenticação e estados da agenda.
+- **Abstração de API**: `ApiService` centraliza o tratamento de requisições e tokens.
+- **Plataforma**: Foco em Desktop (Windows) e Web.
 
-## Data Flow
-1. User interacts with Flutter UI.
-2. Flutter service layer makes HTTP request to Python backend.
-3. Backend processes request, interacts with SQLite, and returns JSON.
-4. Flutter UI updates based on the response.
+## Fluxo de Agendamento via Chat
+1. **Interação**: Cliente acessa `/chat` e seleciona serviço e data.
+2. **Consulta**: O frontend do chat chama `/api/public/horarios` para ver slots vazios.
+3. **Criação**: Cliente envia dados para `/api/public/agendar`.
+4. **Persistência**: Backend salva o cliente (se novo) e o agendamento via SQLAlchemy.
+5. **Notificação**: O backend recupera todos os `push_tokens` e envia uma notificação FCM para o app do barbeiro.
+
+## Fluxo Administrativo
+1. **Autenticação**: Barbeiro faz login no Flutter (JWT).
+2. **Gestão**: Visualiza e modifica agendamentos e serviços.
+3. **Push Registration**: O app Flutter registra seu token FCM no backend para receber alertas de novos agendamentos do chat.
