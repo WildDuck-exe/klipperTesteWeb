@@ -5,6 +5,7 @@ import 'package:animations/animations.dart';
 
 import '../services/api_service.dart';
 import '../widgets/agenda_card.dart';
+import '../widgets/magic_bottom_nav.dart';
 import 'clientes_screen.dart';
 import 'servicos_screen.dart';
 import 'agendamentos_screen.dart';
@@ -115,7 +116,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               drawer: !isDesktop ? _buildDrawer() : null,
               body: _buildMainContent(),
-              floatingActionButton: OpenContainer(
+              bottomNavigationBar: _selectedIndex < 5 ? MagicBottomNav(
+                currentIndex: _selectedIndex,
+                onTap: (index) {
+                  setState(() => _selectedIndex = index);
+                  _handleNavigation(index);
+                },
+              ) : null,
+              floatingActionButton: _selectedIndex < 5 ? OpenContainer(
                 transitionType: ContainerTransitionType.fade,
                 openBuilder: (context, _) => const NovoAgendamentoScreen(),
                 closedElevation: 6.0,
@@ -127,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   foregroundColor: Colors.white,
                   child: const Icon(Icons.add),
                 ),
-              ),
+              ) : null,
             ),
           ),
         ],
@@ -164,11 +172,9 @@ class _HomeScreenState extends State<HomeScreen> {
     Widget screen;
     switch (index) {
       case 1: screen = const ClientesScreen(); break;
-      case 2: screen = const ServicosScreen(); break;
-      case 3: screen = const AgendamentosScreen(); break;
+      case 2: screen = const AgendamentosScreen(); break;
+      case 3: screen = const ServicosScreen(); break;
       case 4: screen = const FinanceiroScreen(); break;
-      case 5: screen = const SettingsScreen(); break;
-      case 6: screen = const AboutScreen(); break;
       default: return;
     }
     Navigator.push(context, PageRouteBuilder(
