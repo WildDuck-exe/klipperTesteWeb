@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 import '../services/api_service.dart';
 import '../widgets/agenda_card.dart';
@@ -118,17 +119,29 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() => _selectedIndex = index);
         },
       ),
-      floatingActionButton: _selectedIndex < 5 ? FloatingActionButton(
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const NovoAgendamentoScreen()),
-          );
-        },
-        backgroundColor: const Color(0xFF0D47A1),
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
+      floatingActionButton: _selectedIndex < 5 ? Padding(
+        padding: const EdgeInsets.only(bottom: 80),
+        child: FloatingActionButton(
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            if (_selectedIndex == 4) {
+              // Financeiro — open Nova Despesa bottom sheet
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                builder: (ctx) => _buildNovaDespesaSheet(ctx),
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NovoAgendamentoScreen()),
+              );
+            }
+          },
+          backgroundColor: _selectedIndex == 4 ? Colors.redAccent : const Color(0xFF0D47A1),
+          foregroundColor: Colors.white,
+          child: Icon(_selectedIndex == 4 ? Icons.remove : Icons.add),
+        ),
       ) : null,
       drawer: isDesktop ? null : _buildDrawer(),
     );
@@ -464,6 +477,59 @@ class _HomeScreenState extends State<HomeScreen> {
       leading: Icon(icon),
       title: Text(title),
       onTap: onTap,
+    );
+  }
+
+  Widget _buildNovaDespesaSheet(BuildContext ctx) {
+    final descController = TextEditingController();
+    final valorController = TextEditingController();
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        left: 16, right: 16, top: 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Nova Despesa', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: descController,
+            decoration: const InputDecoration(labelText: 'Descrição (Ex: Luz, Aluguel)', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: valorController,
+            decoration: const InputDecoration(labelText: 'Valor (R\$)', border: OutlineInputBorder(), prefixText: 'R\$ '),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: () async {
+                if (descController.text.isEmpty || valorController.text.isEmpty) return;
+
+                final apiService = Provider.of<ApiService>(context, listen: false);
+                final valor = double.tryParse(valorController.text.replaceAll(',', '.')) ?? 0.0;
+                final dataHoje = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+                await apiService.criarDespesa(descController.text, valor, dataHoje);
+                if (mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Despesa criada!')));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
+              child: const Text('Salvar Despesa'),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 }

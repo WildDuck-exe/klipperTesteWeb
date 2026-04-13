@@ -172,12 +172,7 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showNovaDespesa,
-        label: const Text('Nova Despesa'),
-        icon: const Icon(Icons.add),
-        backgroundColor: Colors.redAccent,
-      ),
+      floatingActionButton: null,
     );
   }
 

@@ -12,17 +12,22 @@ let userData = {
     data: '',
     data_hora: ''
 };
+let lastErrorText = null; // Track last error to prevent duplicate DOM spam
 
 const API_BASE = '/api/public';
 const STORAGE_KEY = 'ponto_do_corte_telefone';
 
 // ─── Máscara de telefone brasileiro ────────────────────────────────────────────
 function formatarTelefone(value) {
-    // Remove tudo que não for dígito
+    // Always work from pure digits — accepts raw or partially formatted input
     const digits = value.replace(/\D/g, '');
+    if (digits.length === 0) return '';
     if (digits.length <= 2) return `(${digits}`;
-    if (digits.length <= 3) return `(${digits.slice(0, 2)})${digits[2]}`;
-    if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits[2]}-${digits.slice(3)}`;
+    if (digits.length <= 7) {
+        // (XX)XXXXX-XXXX — digits[2] is the 9, rest follows
+        return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+    // (XX)9XXXX-XXXX — 11 digits total
     return `(${digits.slice(0, 2)})${digits[2]}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
 }
 
@@ -114,19 +119,29 @@ function handleUserInput() {
         state = 'PHONE';
         setTimeout(() => askPhone(), 500);
     } else if (state === 'PHONE') {
+        // Liberal input — strip all non-digits, accept any punctuation user typed
         const digits = apenasDigitos(text);
         if (digits.length !== 11 || !digits.startsWith('9')) {
-            addMessage(
-                `O número precisa ter o formato <strong>(DD)9XXXX-XXXX</strong>.<br>Exemplo: <strong>(71)98888-7777</strong>`,
-                "system",
-                true
-            );
+            // If we already showed the same error, just shake the existing bubble
+            const errorMsg = `O número precisa ter <strong>11 dígitos</strong> com 9 depois do DDD.<br>Exemplo: <strong>(71)98888-7777</strong>`;
+            if (lastErrorText && lastErrorText.includes('11 dígitos')) {
+                const bubbles = chatWindow.querySelectorAll('.message.system .bubble');
+                if (bubbles.length > 0) {
+                    const lastBubble = bubbles[bubbles.length - 1];
+                    lastBubble.classList.remove('shake-msg');
+                    void lastBubble.offsetWidth;
+                    lastBubble.classList.add('shake-msg');
+                    userInput.value = '';
+                    return;
+                }
+            }
+            addMessage(errorMsg, "system", true);
             userInput.value = '';
             return;
         }
         userData.telefone = digits;
-        userData.telefoneFormatado = formatarTelefone(text);
-        addMessage(formatarTelefone(text), 'user');
+        userData.telefoneFormatado = formatarTelefone(digits);
+        addMessage(userData.telefoneFormatado, 'user');
         userInput.value = '';
         state = 'SERVICE';
         setTimeout(() => showServices(), 500);
@@ -141,6 +156,18 @@ function shakeInput() {
 
 // ─── Mensagens ────────────────────────────────────────────────────────────────
 function addMessage(text, sender, isHtml = false) {
+    // Deduplicate identical error messages — shake existing bubble instead of DOM spam
+    if (sender === 'system' && !isHtml && lastErrorText === text) {
+        const bubbles = chatWindow.querySelectorAll('.message.system .bubble');
+        if (bubbles.length > 0) {
+            const lastBubble = bubbles[bubbles.length - 1];
+            lastBubble.classList.remove('shake-msg');
+            void lastBubble.offsetWidth; // force reflow
+            lastBubble.classList.add('shake-msg');
+            return; // don't append duplicate
+        }
+    }
+
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${sender}`;
 
@@ -156,6 +183,11 @@ function addMessage(text, sender, isHtml = false) {
     msgDiv.appendChild(bubble);
     chatWindow.appendChild(msgDiv);
     chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    // Remember this error for deduplication
+    if (sender === 'system' && !isHtml) {
+        lastErrorText = text;
+    }
 }
 
 function disableOldOptions() {
