@@ -15,11 +15,11 @@
 - [ ] **Validação de Conflito**: Reforçar lógica de `public.py` para evitar double-booking.
 
 ## Marco 3: Compatibilidade e Entrega Acadêmica
-**Status**: ⚪ Pendente
+**Status**: 🟢 Concluído
 
-- [ ] **Auditoria Python 3.14**: Testar sintaxe e bibliotecas principais.
-- [ ] **Geração de Docs**: Atualizar manuais de instalação.
-- [ ] **Walkthrough Final**: Gravação de demonstração completa.
+- [x] **Auditoria Python 3.14**: Python 3.14.3, todas bibliotecas compatíveis.
+- [x] **Geração de Docs**: README.md backend e frontend atualizados.
+- [x] **Walkthrough Final**: Script de demonstração criado (`walkthrough-script.md`).
 
 ---
 *Roadmap revisado em: 12/04/2026.*
