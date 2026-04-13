@@ -13,28 +13,30 @@ O frontend Flutter e o Chat Web se comunicam com o backend Flask via API REST.
 #### Autenticação (`/api/auth`)
 - `POST /api/auth/login`: Realiza o login e retorna o token JWT.
 
-#### Clientes (`/api/clientes`) [Privado]
-- `GET /api/clientes`: Lista todos os clientes.
-- `POST /api/clientes`: Cria um novo cliente.
-
-#### Serviços (`/api/servicos`) [Privado/Público]
-- `GET /api/servicos`: Lista privada de serviços.
-- `GET /api/public/servicos`: Lista pública para o chat.
-
-#### Agendamentos (`/api/agendamentos`) [Privado]
-- `GET /api/agendamentos`: Lista total de agendamentos.
-- `PUT /api/agendamentos/<id>/concluir`: Marca como concluído.
+#### Gerenciamento de Dados [Privado]
+- **Clientes** (`/api/clientes`): CRUD de clientes da barbearia.
+- **Serviços** (`/api/servicos`): CRUD de catálogo de serviços (preços, durações).
+- **Agendamentos** (`/api/agendamentos`): Controle administrativo de horários.
+- **Configurações** (`/api/configuracoes`): Horários de funcionamento e dados da empresa.
+- **Despesas** (`/api/despesas`): Registro de custos operacionais.
 
 #### Chat Público (`/api/public`)
-- `GET /api/public/horarios`: Verifica disponibilidade de slots de 30 min.
-- `POST /api/public/agendar`: Cria agendamento via chat (Gera notificação push).
+- `GET /api/public/horarios`: Verifica disponibilidade de slots baseado nas configurações de funcionamento.
+- `GET /api/public/servicos`: Retorna a lista de serviços ativos para seleção no chat.
+- `POST /api/public/agendar`: Cria agendamento via chat (Gera notificação push para o admin).
 
 ## Integrações Externas
 
 ### Firebase Cloud Messaging (FCM)
-- **Objetivo**: Notificações em tempo real para o barbeiro sobre novos agendamentos.
-- **Implementação**: SDK `firebase-admin` no backend enviando mensagens multicast para tokens registrados na tabela `push_tokens`.
-- **Credenciais**: `firebase-service-account.json`.
+- **Objetivo**: Notificações em tempo real para o barbeiro sobre novos agendamentos e lembretes.
+- **Implementação**:
+  - **Backend**: SDK `firebase-admin` enviando mensagens multicast.
+  - **Frontend**: `firebase_messaging` registrando tokens e lidando com mensagens em background/foreground.
+- **Credenciais**: `firebase-service-account.json` (projeto: `ponto-do-corte`).
+
+### Google Fonts (CDN)
+- **Objetivo**: Tipografia customizada no frontend Flutter.
+- **Implementação**: Pacote `google_fonts` carrega fontes diretamente do Google Fonts CDN.
 
 ### Chat do Cliente
 - **Interface**: HTML estático em `static/chat/`.

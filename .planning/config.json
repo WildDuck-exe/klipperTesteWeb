@@ -1,0 +1,14 @@
+{
+  "project_name": "Agenda Digital para Barbearia",
+  "language": "pt-BR",
+  "workflow_version": "1.0",
+  "preferences": {
+    "auto_commit": true,
+    "issue_tracking": "local",
+    "docs_style": "markdown"
+  },
+  "phases": {
+    "current": 0,
+    "total": 3
+  }
+}

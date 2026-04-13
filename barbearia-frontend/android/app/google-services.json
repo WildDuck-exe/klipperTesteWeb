@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "973558457499",
+    "project_id": "ponto-do-corte",
+    "storage_bucket": "ponto-do-corte.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:973558457499:android:dbbb8283edaf1b4815523e",
+        "android_client_info": {
+          "package_name": "com.example.barbearia_frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCa5Vht2dCF9uPyDCNGYjb7vYsZI7NvmM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
