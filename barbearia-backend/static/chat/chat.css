@@ -214,6 +214,99 @@ input {
     color: var(--accent-color);
 }
 
+/* Service Cards */
+.service-card {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.service-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.service-card.selected {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.service-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.service-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.service-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin-top: 4px;
+}
+
+/* Input validation states */
+.input-container.phone-valid {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+}
+
+.input-container.phone-invalid {
+    border-color: var(--error);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3);
+}
+
+.phone-hint {
+    font-size: 11px;
+    margin-top: 6px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.phone-hint.valid {
+    color: #22c55e;
+}
+
+.phone-hint.invalid {
+    color: var(--error);
+}
+
+/* Shake animation for invalid input */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
+.shake {
+    animation: shake 0.4s ease;
+}
+
+/* Phone display in bubbles */
+.phone-display {
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--accent-color);
+}
+
 .horarios-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -237,6 +330,34 @@ input {
     background: var(--accent-color);
     border-color: var(--accent-color);
     color: white;
+}
+
+.time-chip {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 10px 14px;
+    border-radius: 12px;
+    color: var(--text-primary);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.time-chip:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.time-chip.selected {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+    box-shadow: 0 4px 15px var(--accent-glow);
 }
 
 .typing {
@@ -271,10 +392,34 @@ input {
 }
 
 .summary-card {
-    background: rgba(255, 255, 255, 0.05);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
     color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 16px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.summary-card h3 {
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.summary-card h3::before {
+    content: '✓';
+    background: var(--accent-color);
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
 }
 
 .ticket {

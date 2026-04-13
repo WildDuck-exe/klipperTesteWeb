@@ -6,6 +6,7 @@ let state = 'NAME';
 let userData = {
     nome: '',
     telefone: '',
+    telefoneFormatado: '',
     servico_id: null,
     servico_nome: '',
     data: '',
@@ -15,7 +16,21 @@ let userData = {
 const API_BASE = '/api/public';
 const STORAGE_KEY = 'ponto_do_corte_telefone';
 
-// Inicialização
+// ─── Máscara de telefone brasileiro ────────────────────────────────────────────
+function formatarTelefone(value) {
+    // Remove tudo que não for dígito
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 2) return `(${digits}`;
+    if (digits.length <= 3) return `(${digits.slice(0, 2)})${digits[2]}`;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits[2]}-${digits.slice(3)}`;
+    return `(${digits.slice(0, 2)})${digits[2]}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
+}
+
+function apenasDigitos(str) {
+    return str.replace(/\D/g, '');
+}
+
+// ─── Inicialização ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     userInput.focus();
     init();
@@ -33,14 +48,13 @@ async function init() {
             if (res.ok) {
                 const cliente = await res.json();
                 if (cliente.encontrado) {
-                    // Cliente reconhecido: preenche os dados e pula para serviços
                     userData.nome = cliente.nome;
-                    userData.telefone = cliente.telefone;
+                    userData.telefone = telefoneSalvo;
 
                     addMessage(
                         `Olá de volta, <strong>${cliente.nome}</strong>! 👋 Que bom te ver por aqui.<br><br>` +
                         `<span style="font-size: 0.9em; opacity: 0.8;">Não é você? ` +
-                        `<button onclick="esquecer()" style="background: none; border: none; text-decoration: underline; cursor: pointer; color: inherit; font-size: inherit;">` +
+                        `<button onclick="esqueci()" style="background: none; border: none; text-decoration: underline; cursor: pointer; color: inherit; font-size: inherit;">` +
                         `Usar outro número</button></span>`,
                         'system',
                         true
@@ -53,36 +67,35 @@ async function init() {
             }
         } catch (e) {
             loader.remove();
-            // Falha silenciosa: segue o fluxo normal sem travar o chat
         }
     }
 
-    // Fluxo normal: nenhum dado salvo ou cliente não encontrado no servidor
     addMessage(
-        "Olá! Bem-vindo ao Ponto do Corte. 💈<br>Para começarmos, qual é o seu <strong>nome</strong>?",
+        "Olá! Bem-vindo ao <strong>Ponto do Corte</strong>. 💈<br>Para começarmos, qual é o seu <strong>nome completo</strong>?",
         'system',
         true
     );
 }
 
-// Enviar mensagem
+// ─── Envio de mensagem ────────────────────────────────────────────────────────
 sendBtn.addEventListener('click', handleUserInput);
 userInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleUserInput();
 });
 
-function esquecer() {
-    localStorage.removeItem(STORAGE_KEY);
-    userData = {
-        nome: '',
-        telefone: '',
-        servico_id: null,
-        servico_nome: '',
-        data: '',
-        data_hora: ''
-    };
-    state = 'NAME';
-    addMessage("Tudo bem! Vamos recomeçar. Qual é o seu <strong>nome</strong>?", 'system', true);
+userInput.addEventListener('input', () => {
+    if (state === 'PHONE') {
+        const formatted = formatarTelefone(userInput.value);
+        userInput.value = formatted;
+        validarTelefone();
+    }
+});
+
+function validarTelefone() {
+    const digits = apenasDigitos(userInput.value);
+    const valid = digits.length === 11 && digits.startsWith('9');
+    userInput.style.borderColor = valid ? 'var(--success, #22c55e)' : (digits.length > 0 ? 'var(--error, #ef4444)' : '');
+    return valid;
 }
 
 function handleUserInput() {
@@ -90,45 +103,67 @@ function handleUserInput() {
     if (!text && state !== 'SERVICE' && state !== 'TIME') return;
 
     if (state === 'NAME') {
+        if (text.length < 2) {
+            shakeInput();
+            addMessage("Por favor, digite um nome válido (pelo menos 2 letras).", "system");
+            return;
+        }
         userData.nome = text;
         addMessage(text, 'user');
         userInput.value = '';
         state = 'PHONE';
         setTimeout(() => askPhone(), 500);
     } else if (state === 'PHONE') {
-        userData.telefone = text;
-        addMessage(text, 'user');
+        const digits = apenasDigitos(text);
+        if (digits.length !== 11 || !digits.startsWith('9')) {
+            addMessage(
+                `O número precisa ter o formato <strong>(DD)9XXXX-XXXX</strong>.<br>Exemplo: <strong>(71)98888-7777</strong>`,
+                "system",
+                true
+            );
+            userInput.value = '';
+            return;
+        }
+        userData.telefone = digits;
+        userData.telefoneFormatado = formatarTelefone(text);
+        addMessage(formatarTelefone(text), 'user');
         userInput.value = '';
         state = 'SERVICE';
         setTimeout(() => showServices(), 500);
     }
 }
 
+function shakeInput() {
+    userInput.style.animation = 'none';
+    userInput.offsetHeight; // força reflow
+    userInput.style.animation = 'shake 0.4s ease';
+}
+
+// ─── Mensagens ────────────────────────────────────────────────────────────────
 function addMessage(text, sender, isHtml = false) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${sender}`;
-    
+
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
-    
+
     if (isHtml) {
         bubble.innerHTML = text;
     } else {
         bubble.textContent = text;
     }
-    
+
     msgDiv.appendChild(bubble);
     chatWindow.appendChild(msgDiv);
     chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
 function disableOldOptions() {
-    // Desabilita todos os botões de opções anteriores para evitar cliques fora de contexto
     const buttons = document.querySelectorAll('.option-btn, .horario-btn, .confirm-btn');
     buttons.forEach(btn => {
         btn.disabled = true;
-        btn.style.opacity = '0.6';
-        btn.style.cursor = 'not-allowed';
+        btn.style.opacity = '0.5';
+        btn.style.pointerEvents = 'none';
     });
 }
 
@@ -149,10 +184,25 @@ function showTyping() {
     return typingDiv;
 }
 
+// ─── Fluxo: Telefone ─────────────────────────────────────────────────────────
 function askPhone() {
-    addMessage(`Prazer em te conhecer, <strong>${userData.nome}</strong>! Qual é o seu número de <strong>telefone</strong> (com DDD)?`, 'system', true);
+    userInput.disabled = false;
+    userInput.type = 'tel';
+    userInput.inputMode = 'numeric';
+    userInput.value = '';
+    userInput.placeholder = '(00)90000-0000';
+    userInput.maxLength = 15;
+    userInput.focus();
+
+    addMessage(
+        `Prazer, <strong>${userData.nome}</strong>! 💈 Agora me informe seu <strong>celular</strong> com DDD:<br>` +
+        `<span style="font-size: 0.85em; opacity: 0.7;">Ex: (71)98888-7777 — são 11 dígitos com o 9 depois do DDD</span>`,
+        'system',
+        true
+    );
 }
 
+// ─── Fluxo: Serviços ─────────────────────────────────────────────────────────
 async function showServices() {
     const loader = showTyping();
     try {
@@ -160,76 +210,91 @@ async function showServices() {
         const servicos = await response.json();
         loader.remove();
 
-        addMessage("Ótimo! Agora escolha qual serviço você deseja realizar:", "system");
-        
+        if (servicos.length === 0) {
+            addMessage("Nenhum serviço disponível no momento. Tente novamente mais tarde.", "system");
+            return;
+        }
+
+        addMessage("Ótimo! Escolha o serviço:", "system");
+
         const optionsDiv = document.createElement('div');
-        optionsDiv.className = 'options-container';
-        
+        optionsDiv.className = 'services-grid';
+
         servicos.forEach(s => {
             const btn = document.createElement('button');
-            btn.className = 'option-btn';
+            btn.className = 'service-card';
             btn.innerHTML = `
-                <span>${s.nome}</span>
-                <span class="price">R$ ${s.preco.toFixed(2)}</span>
+                <span class="service-name">${s.nome}</span>
+                <span class="service-meta">${s.duracao_minutos} min</span>
+                <span class="service-price">R$ ${s.preco.toFixed(2)}</span>
             `;
             btn.onclick = () => selectService(s.id, s.nome);
             optionsDiv.appendChild(btn);
         });
-        
+
         chatWindow.appendChild(optionsDiv);
         chatWindow.scrollTop = chatWindow.scrollHeight;
         userInput.disabled = true;
     } catch (e) {
         loader.remove();
-        addMessage("Ops, tive um problema ao carregar os serviços. Tente novamente mais tarde.", "system");
+        addMessage("Erro ao carregar serviços. Verifique sua conexão.", "system");
     }
 }
 
 function selectService(id, nome) {
-    disableOldOptions(); // Desabilita botões de outros serviços
+    disableOldOptions();
     userData.servico_id = id;
     userData.servico_nome = nome;
     addMessage(nome, 'user');
-    
+
     state = 'DATE';
     setTimeout(() => askDate(), 500);
 }
 
+// ─── Fluxo: Data ──────────────────────────────────────────────────────────────
 function askDate() {
     userInput.disabled = false;
     userInput.type = 'date';
+    userInput.value = '';
+    userInput.placeholder = '';
+    userInput.maxLength = '';
     userInput.focus();
-    
-    // Define data mínima como hoje
+
     const hoje = new Date().toISOString().split('T')[0];
     userInput.min = hoje;
-    
-    addMessage("Perfeito. Em qual **data** você gostaria de agendar?", "system", true);
-    
-    // Sobrescreve o handler de input para capturar a data
-    sendBtn.onclick = handleDateInput;
-    userInput.onkeypress = (e) => {
-        if (e.key === 'Enter') handleDateInput();
-    };
+
+    addMessage(
+        `Ótimo, <strong>${userData.servico_nome}</strong>! 📅 Qual <strong>data</strong> você prefere?`,
+        'system',
+        true
+    );
 }
 
 function handleDateInput() {
     const dateValue = userInput.value;
     if (!dateValue) return;
 
-    disableOldOptions(); // Garante limpeza de botões residuais
+    disableOldOptions();
     userData.data = dateValue;
     const dateFormatted = dateValue.split('-').reverse().join('/');
     addMessage(dateFormatted, 'user');
-    
+
     userInput.value = '';
     userInput.type = 'text';
     userInput.disabled = true;
-    
+
     state = 'TIME';
     showTimes();
 }
 
+// Substitui o handler do sendBtn para data
+document.getElementById('user-input').addEventListener('change', () => {
+    if (state === 'DATE') {
+        handleDateInput();
+    }
+});
+
+// ─── Fluxo: Horários ─────────────────────────────────────────────────────────
 async function showTimes() {
     const loader = showTyping();
     try {
@@ -238,71 +303,77 @@ async function showTimes() {
         loader.remove();
 
         if (data.disponiveis.length === 0) {
-            addMessage("Não temos horários disponíveis para esta data. Por favor, escolha outro dia.", "system");
-            setTimeout(() => askDate(), 1000);
+            addMessage("Nenhum horário disponível nesta data. 😔 Por favor, escolha outro dia.", "system");
+            setTimeout(() => askDate(), 1500);
             return;
         }
 
-        addMessage("Temos estes horários disponíveis. Qual prefere?", "system");
-        
+        addMessage(`Temos <strong>${data.disponiveis.length}</strong> horários disponíveis. Qual prefere?`, "system");
+
         const grid = document.createElement('div');
         grid.className = 'horarios-grid';
-        
+
         data.disponiveis.forEach(hora => {
             const btn = document.createElement('button');
-            btn.className = 'horario-btn';
+            btn.className = 'time-chip';
             btn.textContent = hora;
             btn.onclick = () => selectTime(hora);
             grid.appendChild(btn);
         });
-        
+
         chatWindow.appendChild(grid);
         chatWindow.scrollTop = chatWindow.scrollHeight;
     } catch (e) {
         loader.remove();
-        addMessage("Erro ao carregar horários.", "system");
+        addMessage("Erro ao carregar horários. Tente novamente.", "system");
     }
 }
 
 function selectTime(hora) {
-    disableOldOptions(); // Desabilita grade de horários
+    disableOldOptions();
     userData.data_hora = `${userData.data}T${hora}:00`;
     addMessage(hora, 'user');
-    
+
     state = 'SUMMARY';
     setTimeout(() => showSummary(), 500);
 }
 
+// ─── Confirmação ─────────────────────────────────────────────────────────────
 function showSummary() {
+    const dataFmt = userData.data.split('-').reverse().join('/');
+    const horaFmt = userData.data_hora.split('T')[1].substring(0, 5);
+
     const summaryHtml = `
         <div class="summary-card">
-            <h3>Confirme seu Agendamento</h3>
+            <h3>✅ Confirme seu Agendamento</h3>
             <div class="summary-detail">
-                <span class="label">Serviço:</span>
+                <span class="label">💈 Serviço</span>
                 <span class="value">${userData.servico_nome}</span>
             </div>
             <div class="summary-detail">
-                <span class="label">Data:</span>
-                <span class="value">${userData.data.split('-').reverse().join('/')}</span>
+                <span class="label">📅 Data</span>
+                <span class="value">${dataFmt}</span>
             </div>
             <div class="summary-detail">
-                <span class="label">Horário:</span>
-                <span class="value">${userData.data_hora.split('T')[1].substring(0, 5)}</span>
+                <span class="label">⏰ Horário</span>
+                <span class="value">${horaFmt}</span>
             </div>
-            <button id="confirm-booking-btn" class="confirm-btn">Confirmar Agendamento</button>
+            <button id="confirm-booking-btn" class="confirm-btn" onclick="finishBooking()">
+                ✅ Confirmar Agendamento
+            </button>
         </div>
     `;
     addMessage(summaryHtml, 'system', true);
-    
-    const btn = document.getElementById('confirm-booking-btn');
-    btn.onclick = () => {
-        btn.disabled = true;
-        btn.textContent = 'Agendando...';
-        finishBooking();
-    };
 }
 
+// ─── Booking ─────────────────────────────────────────────────────────────────
 async function finishBooking() {
+    const btn = document.getElementById('confirm-booking-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Aguarde...';
+    }
+
     const loader = showTyping();
     try {
         const response = await fetch(`${API_BASE}/agendar`, {
@@ -320,14 +391,12 @@ async function finishBooking() {
         loader.remove();
 
         if (response.ok) {
-            // Persiste o telefone para reconhecimento futuro
             localStorage.setItem(STORAGE_KEY, userData.telefone);
 
             const ticketId = Math.random().toString(36).substr(2, 9).toUpperCase();
-            const dataFormatada = userData.data.split('-').reverse().join('/');
-            const horaFormatada = userData.data_hora.split('T')[1].substring(0, 5);
+            const dataFmt = userData.data.split('-').reverse().join('/');
+            const horaFmt = userData.data_hora.split('T')[1].substring(0, 5);
 
-            // Mensagem no chat
             addMessage(`
                 <div class="success-animation">
                     <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
@@ -337,25 +406,31 @@ async function finishBooking() {
                 </div>
             `, "system", true);
 
-            // Modal de sucesso
-            showSuccessModal(userData.servico_nome, dataFormatada, horaFormatada, ticketId);
-
+            showSuccessModal(userData.servico_nome, dataFmt, horaFmt, ticketId);
             addMessage(`O barbeiro já foi notificado. Te esperamos lá! 💈`, "system");
+
+        } else if (response.status === 409) {
+            addMessage(`Este horário acabou de ser preenchido. 😔 Por favor, escolha outro.`, "system");
+            setTimeout(() => askDate(), 2000);
         } else {
-            addMessage(`Houve um erro: ${resData.error}`, "system");
-            // Se for conflito, permite tentar outro horário
-            if (response.status === 409) {
-                setTimeout(() => askDate(), 2000);
+            addMessage(`Erro: ${resData.error || 'Não foi possível confirmar. Tente novamente.'}`, "system");
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '✅ Confirmar Agendamento';
             }
         }
     } catch (e) {
         loader.remove();
-        addMessage("Erro ao conectar com o servidor.", "system");
+        addMessage("Erro de conexão. Verifique sua internet.", "system");
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '✅ Confirmar Agendamento';
+        }
     }
 }
 
+// ─── Modal de Sucesso ─────────────────────────────────────────────────────────
 function showSuccessModal(servico, data, hora, ticketId) {
-    // Remove modal existente se houver
     const existing = document.getElementById('success-modal-overlay');
     if (existing) existing.remove();
 
@@ -363,16 +438,16 @@ function showSuccessModal(servico, data, hora, ticketId) {
     overlay.id = 'success-modal-overlay';
     overlay.innerHTML = `
         <div class="success-modal-content">
-            <div class="success-modal-check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+            <div class="success-modal-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" width="72" height="72">
                     <circle cx="26" cy="26" r="25" fill="none" stroke="#22C55E" stroke-width="2"/>
                     <path fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
                 </svg>
             </div>
-            <h2 style="color:#22C55E;margin:0;font-size:22px;">Agendamento Confirmado!</h2>
-            <p style="color:#94a3b8;margin:4px 0 20px;font-size:14px;">Prepare-se para ficar com o cabelo na régua 💈</p>
-            <div class="ticket" style="text-align:left;width:100%;">
-                <div class="ticket-header">Ponto do Corte</div>
+            <h2 style="color:#22C55E;margin:0 0 4px;font-size:22px;">Agendamento Confirmado!</h2>
+            <p style="color:#94a3b8;margin:0 0 20px;font-size:14px;">Prepare-se para ficar na régua 💈</p>
+            <div class="ticket">
+                <div class="ticket-header">💈 Ponto do Corte</div>
                 <div class="ticket-body">
                     <div class="ticket-row">
                         <span class="ticket-label">Serviço</span>
@@ -389,19 +464,17 @@ function showSuccessModal(servico, data, hora, ticketId) {
                 </div>
                 <div class="ticket-footer">TOKEN: ${ticketId}</div>
             </div>
-            <button class="new-booking-btn" onclick="resetChat()" style="margin-top:16px;">
-                Novo Agendamento
+            <button class="new-booking-btn" onclick="resetChat()">
+                🔄 Novo Agendamento
             </button>
         </div>
     `;
     document.body.appendChild(overlay);
 
-    // Abre com animação
     requestAnimationFrame(() => {
         overlay.style.opacity = '1';
     });
 
-    // Fecha ao clicar fora
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) {
             overlay.style.opacity = '0';
@@ -410,20 +483,36 @@ function showSuccessModal(servico, data, hora, ticketId) {
     });
 }
 
+// ─── Reset ────────────────────────────────────────────────────────────────────
 function resetChat() {
-    // Fecha o modal se estiver aberto
     const modal = document.getElementById('success-modal-overlay');
-    if (modal) modal.remove();
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+    }
 
-    // Limpa serviço e agenda, mantém nome e telefone
     userData.servico_id = null;
     userData.servico_nome = '';
     userData.data = '';
     userData.data_hora = '';
 
-    // Limpa o chat e volta para o início direto (sem init() para evitar loop)
     chatWindow.innerHTML = '';
     state = 'SERVICE';
+
+    addMessage(
+        `Ótimo, <strong>${userData.nome}</strong>! Vamos criar um novo agendamento. 💈<br>Qual serviço você gostaria?`,
+        'system',
+        true
+    );
     setTimeout(() => showServices(), 300);
 }
 
+function esqueci() {
+    localStorage.removeItem(STORAGE_KEY);
+    userData.nome = '';
+    userData.telefone = '';
+    userData.telefoneFormatado = '';
+    chatWindow.innerHTML = '';
+    state = 'NAME';
+    init();
+}

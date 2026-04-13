@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:animations/animations.dart';
 
 import '../services/api_service.dart';
 import '../widgets/agenda_card.dart';
@@ -9,16 +8,15 @@ import '../widgets/magic_bottom_nav.dart';
 import 'clientes_screen.dart';
 import 'servicos_screen.dart';
 import 'agendamentos_screen.dart';
+import 'financeiro_screen.dart';
+import 'settings_screen.dart';
+import 'about_screen.dart';
 import 'novo_agendamento_screen.dart';
 
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-
-import 'settings_screen.dart';
-import 'financeiro_screen.dart';
-import 'about_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -100,46 +98,71 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           if (isDesktop) _buildNavigationRail(),
           Expanded(
-            child: Scaffold(
-              appBar: AppBar(
-                title: Text(
-                  'Dashboard',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-                ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _refreshData,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
-              drawer: !isDesktop ? _buildDrawer() : null,
-              body: _buildMainContent(),
-              bottomNavigationBar: _selectedIndex < 5 ? MagicBottomNav(
-                currentIndex: _selectedIndex,
-                onTap: (index) {
-                  setState(() => _selectedIndex = index);
-                  _handleNavigation(index);
-                },
-              ) : null,
-              floatingActionButton: _selectedIndex < 5 ? OpenContainer(
-                transitionType: ContainerTransitionType.fade,
-                openBuilder: (context, _) => const NovoAgendamentoScreen(),
-                closedElevation: 6.0,
-                closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                closedColor: Theme.of(context).colorScheme.primary,
-                closedBuilder: (context, openContainer) => FloatingActionButton(
-                  onPressed: openContainer,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  child: const Icon(Icons.add),
-                ),
-              ) : null,
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: [
+                _buildDashboardStack(MediaQuery.of(context).size.width > 900),
+                const ClientesScreen(),
+                const AgendamentosScreen(),
+                const ServicosScreen(),
+                const FinanceiroScreen(),
+              ],
             ),
           ),
         ],
       ),
+      bottomNavigationBar: MagicBottomNav(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          HapticFeedback.lightImpact();
+          setState(() => _selectedIndex = index);
+        },
+      ),
+      floatingActionButton: _selectedIndex < 5 ? FloatingActionButton(
+        onPressed: () {
+          HapticFeedback.mediumImpact();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const NovoAgendamentoScreen()),
+          );
+        },
+        backgroundColor: const Color(0xFF0D47A1),
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
+      ) : null,
+      drawer: isDesktop ? null : _buildDrawer(),
+    );
+  }
+
+  Widget _buildDashboardStack(bool isDesktop) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Dashboard',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
+        leading: isDesktop ? null : IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: _buildMainContent(),
     );
   }
 
@@ -169,25 +192,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleNavigation(int index) {
-    Widget screen;
-    switch (index) {
-      case 1: screen = const ClientesScreen(); break;
-      case 2: screen = const AgendamentosScreen(); break;
-      case 3: screen = const ServicosScreen(); break;
-      case 4: screen = const FinanceiroScreen(); break;
-      default: return;
-    }
-    Navigator.push(context, PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => screen,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return SharedAxisTransition(
-          animation: animation,
-          secondaryAnimation: secondaryAnimation,
-          transitionType: SharedAxisTransitionType.horizontal,
-          child: child,
-        );
-      },
-    ));
+    HapticFeedback.lightImpact();
+    setState(() => _selectedIndex = index);
   }
 
   Widget _buildMainContent() {
@@ -418,13 +424,19 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          _buildDrawerItem(Icons.dashboard, 'Dashboard', 0, () => Navigator.pop(context)),
+          _buildDrawerItem(Icons.dashboard, 'Dashboard', 0, () => _handleNavigation(0)),
           _buildDrawerItem(Icons.people, 'Clientes', 1, () => _handleNavigation(1)),
-          _buildDrawerItem(Icons.cut, 'Serviços', 2, () => _handleNavigation(2)),
-          _buildDrawerItem(Icons.calendar_today, 'Agenda Completa', 3, () => _handleNavigation(3)),
+          _buildDrawerItem(Icons.cut, 'Serviços', 3, () => _handleNavigation(3)),
+          _buildDrawerItem(Icons.calendar_today, 'Agenda Completa', 2, () => _handleNavigation(2)),
           _buildDrawerItem(Icons.monetization_on, 'Financeiro', 4, () => _handleNavigation(4)),
-          _buildDrawerItem(Icons.settings, 'Configurações', 5, () => _handleNavigation(5)),
-          _buildDrawerItem(Icons.info, 'Sobre', 6, () => _handleNavigation(6)),
+          _buildDrawerItemRoute(Icons.settings, 'Configurações', () {
+            Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
+          }),
+          _buildDrawerItemRoute(Icons.info, 'Sobre', () {
+            Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutScreen()));
+          }),
           const Spacer(),
           const Divider(),
           ListTile(
@@ -439,11 +451,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDrawerItem(IconData icon, String title, int index, VoidCallback onTap) {
-    final isSelected = _selectedIndex == index;
     return ListTile(
-      leading: Icon(icon, color: isSelected ? Theme.of(context).primaryColor : null),
-      title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : null)),
-      selected: isSelected,
+      leading: Icon(icon, color: _selectedIndex == index ? Theme.of(context).primaryColor : null),
+      title: Text(title, style: TextStyle(fontWeight: _selectedIndex == index ? FontWeight.bold : null)),
+      selected: _selectedIndex == index,
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildDrawerItemRoute(IconData icon, String title, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
       onTap: onTap,
     );
   }
