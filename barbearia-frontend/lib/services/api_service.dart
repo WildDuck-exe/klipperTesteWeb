@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'dart:io';
 
 class Cliente {
   final int id;
@@ -152,7 +151,14 @@ class DashboardData {
 }
 
 class ApiService extends ChangeNotifier {
-  final String _baseUrl = dotenv.get('API_BASE_URL', fallback: 'http://localhost:5000');
+  // Use a getter for baseUrl to ensure safe fallback and avoid crash if dotenv fails early
+  String get _baseUrl {
+    try {
+      return dotenv.get('API_BASE_URL', fallback: 'http://localhost:5000');
+    } catch (_) {
+      return 'http://localhost:5000';
+    }
+  }
 
   List<Cliente> _clientes = [];
   List<Servico> _servicos = [];
@@ -208,26 +214,38 @@ class ApiService extends ChangeNotifier {
     debugPrint('Iniciando processo de registro de token de notificação...');
 
     try {
+      String currentPlatform = 'Web';
+      if (!kIsWeb) {
+        if (defaultTargetPlatform == TargetPlatform.android) currentPlatform = 'Android';
+        else if (defaultTargetPlatform == TargetPlatform.iOS) currentPlatform = 'iOS';
+        else if (defaultTargetPlatform == TargetPlatform.windows) currentPlatform = 'Windows';
+        else currentPlatform = defaultTargetPlatform.name;
+      }
+
       // Tenta obter o token. Em plataformas não suportadas nativamente pela lib oficial,
       // isso pode lançar uma exceção ou retornar nulo.
       String? fcmToken;
       
       // Tenta obter o token independente da plataforma (aproveita suporte experimental/estável de plugins)
       try {
-        fcmToken = await FirebaseMessaging.instance.getToken();
+        if (!kIsWeb && 
+            (defaultTargetPlatform == TargetPlatform.android || 
+             defaultTargetPlatform == TargetPlatform.iOS)) {
+          fcmToken = await FirebaseMessaging.instance.getToken();
+        }
       } catch (fcmError) {
-        debugPrint('Erro ao obter token FCM na plataforma ${Platform.operatingSystem}: $fcmError');
+        debugPrint('Erro ao obter token FCM na plataforma $currentPlatform: $fcmError');
       }
 
       if (fcmToken != null) {
-        debugPrint('Registrando FCM Token no Backend para ${Platform.operatingSystem}: $fcmToken');
+        debugPrint('Registrando FCM Token no Backend para $currentPlatform: $fcmToken');
 
         final response = await http.post(
           Uri.parse('$_baseUrl/api/auth/register-token'),
           headers: _authHeaders,
           body: json.encode({
             'token': fcmToken,
-            'dispositivo': Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : Platform.operatingSystem),
+            'dispositivo': currentPlatform,
           }),
         );
         

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 
@@ -24,28 +23,26 @@ class MyCustomScrollBehavior extends MaterialScrollBehavior {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  try {
-    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+  // Firebase: Apenas mobile
+  if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
+    try {
       await Firebase.initializeApp();
-      FirebaseMessaging messaging = FirebaseMessaging.instance;
-      
-      // Solicita permissão (No Windows isso pode ser um no-op mas não quebra)
-      NotificationSettings settings = await messaging.requestPermission(
+      final messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
-      debugPrint('Permissão de notificações: ${settings.authorizationStatus}');
+    } catch (e) {
+      debugPrint("Firebase skip/fail: $e");
     }
-
-  } catch (e) {
-    debugPrint("Firebase não inicializado nesta plataforma: $e");
   }
 
+  // DotEnv: Falha silenciosa com fallback
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    debugPrint("Aviso: Arquivo .env não encontrado. Usando valores padrão.");
+    debugPrint("DotEnv fallback: $e");
   }
 
   runApp(const BarbeariaApp());

@@ -14,7 +14,6 @@ import 'settings_screen.dart';
 import 'about_screen.dart';
 import 'novo_agendamento_screen.dart';
 
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -39,7 +38,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _setupRealtimeUpdate() {
-    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isWindows)) {
+    if (kIsWeb) return; // Blindagem total na Web
+
+    if (defaultTargetPlatform == TargetPlatform.android || 
+        defaultTargetPlatform == TargetPlatform.iOS || 
+        defaultTargetPlatform == TargetPlatform.windows) {
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         _refreshData();
         if (mounted) {
