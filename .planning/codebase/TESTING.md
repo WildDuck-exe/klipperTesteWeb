@@ -1,171 +1,263 @@
-# Estratégia de Testes — Ponto do Corte
+# TESTING
 
-## Princípio Base
+## Visão Geral
 
-A Regra Global Primária (Minimizar Requisições API) impacta diretamente a estratégia de testes: testes bem escritos na primeira execução evitam ciclos de correção que geram múltiplas requisições. Priorizar cobertura abrangente com execução eficiente.
+Este documento descreve a estratégia de testes do projeto Barbearia (Ponto do Corte), incluindo frameworks, localizações de testes e práticas adotadas.
 
-## Stack de Ferramentas
+## Backend Testing (Python/Flask)
 
-| Camada | Ferramenta | Propósito |
-|--------|------------|-----------|
-| Backend | `pytest` | Testes unitários e integração |
-| Backend | `pytest-cov` | Métrica de cobertura |
-| Frontend | `flutter_test` | Testes unitários e de widgets |
-| Frontend | `flutter_driver` (opcional) | Testes de integração |
-
-## Backend (Python/Flask/SQLAlchemy)
+### Framework
+- **Framework:** pytest
+- **Localização:** `barbearia-backend/tests/`
+- **Execução:** `cd barbearia-backend && python -m pytest`
 
 ### Estrutura de Testes
 ```
-barbearia-backend/
-  tests/
-    __init__.py
-    conftest.py          # Fixtures compartilhadas
-    test_models/         # Testes de models SQLAlchemy
-    test_routes/         # Testes de endpoints/Blueprints
-    test_utils/          # Testes de utilitários
+barbearia-backend/tests/
+├── conftest.py           # Fixtures pytest compartilhadas
+├── test_agendamento.py   # Testes para modelo Agendamento
+├── test_cliente.py       # Testes para modelo Cliente
+├── test_servico.py       # Testes para modelo Servico
+└── test_init_db.py       # Testes para script de inicialização
 ```
 
-### Fixtures Principais (conftest.py)
-- `client`: Cliente de teste Flask.
-- `db_session`: Sessão SQLAlchemy isolada (rollback após cada teste).
-- `auth_token`: Token JWT válido para endpoints protegidos.
-- `app`: Instância configurada do app Flask em modo teste.
+### Fixtures (conftest.py)
 
-### O que Testar
+O arquivo `conftest.py` define fixtures pytest para criação de ambiente de testes isolado:
 
-#### Models
-- Atributos de cada model (colunas, tipos, restrições).
-- Relacionamentos (ForeignKey, backref).
-- Validações (ex: horário não no passado).
-
-#### Routes/Blueprints
-- Cada endpoint: sucesso e falha.
-- Autenticação: endpoints protegidos rejeitam token inválido.
-- Validação de entrada: dados mal formatados retornam 400.
-- Respostas JSON: estrutura e status code corretos.
-
-### Exemplo de Teste de Model
 ```python
-def test_agendamento_criacao(db_session):
+@pytest.fixture
+def app():
+    """Cria aplicação Flask com banco temporário."""
+    # Cria banco SQLite temporário
+    db_fd, db_path = tempfile.mkstemp(suffix='.db')
+    flask_app.config.update({
+        'TESTING': True,
+        'SQLALCHEMY_DATABASE_URI': f'sqlite:///{db_path}',
+    })
+    yield flask_app
+    # Limpeza
+    os.close(db_fd)
+    os.unlink(db_path)
+
+@pytest.fixture
+def client(app):
+    """Cliente HTTP para testes de API."""
+    return app.test_client()
+
+@pytest.fixture
+def database(app):
+    """Banco de dados com schema criado."""
+    with app.app_context():
+        db.create_all()
+        yield db
+        db.session.remove()
+        db.drop_all()
+
+@pytest.fixture
+def sample_cliente(database):
+    """Cliente de exemplo para testes."""
+    cliente = Cliente(nome="Teste Cliente", telefone="(11) 99999-9999")
+    db.session.add(cliente)
+    db.session.commit()
+    return cliente
+
+@pytest.fixture
+def sample_servico(database):
+    """Serviço de exemplo para testes."""
+    servico = Servico(nome="Corte Teste", preco=30.00, descricao="Serviço de teste")
+    db.session.add(servico)
+    db.session.commit()
+    return servico
+
+@pytest.fixture
+def sample_agendamento(database, sample_cliente, sample_servico):
+    """Agendamento de exemplo para testes."""
     agendamento = Agendamento(
-        cliente_id=1,
-        servico_id=1,
-        data_hora=datetime(2025, 1, 15, 10, 0),
-        status="confirmado"
+        cliente_id=sample_cliente.id,
+        servico_id=sample_servico.id,
+        data_hora=datetime.now(),
+        observacoes="Teste"
     )
-    db_session.add(agendamento)
-    db_session.commit()
-    assert agendamento.id is not None
-    assert agendamento.status == "confirmado"
+    db.session.add(agendamento)
+    db.session.commit()
+    return agendamento
 ```
 
-### Exemplo de Teste de Route
+### Testes de Modelo
+
+#### Testes em test_cliente.py
+- `test_cliente_creation` - Criação básica de cliente
+- `test_cliente_required_fields` - Validação de campos obrigatórios
+- `test_cliente_to_dict` - Serialização para dicionário
+- `test_cliente_repr` - Representação string do objeto
+- `test_cliente_without_phone` - Criação sem telefone
+- `test_cliente_query` - Busca no banco
+- `test_cliente_update` - Atualização de dados
+- `test_cliente_delete` - Exclusão
+- `test_multiple_clientes` - Criação em massa
+
+#### Testes em test_servico.py
+- `test_servico_creation` - Criação básica
+- `test_servico_required_fields` - Validação
+- `test_servico_default_values` - Valores padrão (duracao_minutos=30)
+- `test_servico_to_dict` - Serialização
+- `test_servico_decimal_precision` - Precisão decimal do preço
+- `test_servico_update` - Atualização
+- `test_servico_delete` - Exclusão
+- `test_servico_negative_duration` - Validação de duração negativa
+
+#### Testes em test_agendamento.py
+- `test_agendamento_creation` - Criação básica
+- `test_agendamento_required_fields` - Campos obrigatórios (cliente_id, servico_id, data_hora)
+- `test_agendamento_default_values` - Status padrão ("agendado")
+- `test_agendamento_to_dict` - Serialização
+
+#### Testes em test_init_db.py
+- `test_init_db_script_structure` - Verifica estrutura do script
+- `test_init_db_imports` - Testa imports do módulo
+- `test_init_database_function` - Testa função com mocks
+
+### Exemplo de Teste
 ```python
-def test_listar_servicos(client, auth_token):
-    response = client.get(
-        "/api/v1/servicos",
-        headers={"Authorization": f"Bearer {auth_token}"}
-    )
-    assert response.status_code == 200
-    data = response.get_json()
-    assert isinstance(data, list)
+def test_cliente_creation(database):
+    """Testa a criação de um cliente."""
+    cliente = Cliente(nome="João Silva", telefone="(11) 99999-9999")
+
+    assert cliente.nome == "João Silva"
+    assert cliente.telefone == "(11) 99999-9999"
+    assert cliente.id is None  # Ainda não foi persistido
+
+    db.session.add(cliente)
+    db.session.commit()
+
+    assert cliente.id is not None
+    assert isinstance(cliente.id, int)
+    assert cliente.data_cadastro is not None
 ```
 
-### Cobertura Mínima
-- **Models**: 90% dos atributos e métodos.
-- **Routes**: 80% dos endpoints (todos os verbos HTTP).
-- **Utils**: 70% (priorizar funções críticas como `notifications.py`).
-
-### Execução
+### Execução de Testes Backend
 ```bash
+# Todos os testes
 cd barbearia-backend
-pytest tests/ -v --cov=. --cov-report=term-missing
+python -m pytest
+
+# Com verbose
+python -m pytest -v
+
+# Teste específico
+python -m pytest tests/test_cliente.py -v
+
+# Com coverage (requer pytest-cov)
+python -m pytest --cov=. --cov-report=html
 ```
 
-## Frontend (Flutter)
+## Frontend Testing (Flutter)
+
+### Framework
+- **Framework:** flutter_test (incluído no SDK)
+- **Localização:** `barbearia-frontend/test/`
+- **Execução:** `cd barbearia-frontend && flutter test`
 
 ### Estrutura de Testes
 ```
-barbearia-frontend/
-  test/
-    unit/                 # Testes de lógica/negócio
-    widget/               # Testes de componentes visuais
+barbearia-frontend/test/
+└── widget_test.dart   # Teste placeholder (smoke test padrão)
 ```
 
-### O que Testar
+### Teste Atual (widget_test.dart)
+O projeto contém apenas o teste placeholder padrão do Flutter:
 
-#### Unit Tests
-- Models: Serialização/deserialização JSON.
-- Providers: Lógica de estado e transições.
-- Services: Parsing de respostas API.
-
-#### Widget Tests
-- Componentes principais: `AgendaCard`, formulários.
-- Estados: carregamento, erro, vazio, sucesso.
-- Interações do usuário: taps, inputs.
-
-### Exemplo de Teste de Widget
 ```dart
-testWidgets('AgendaCard exibe informações corretas', (tester) async {
-  await tester.pumpWidget(
-    MaterialApp(home: AgendaCard(agendamento: mockAgendamento)),
-  );
-  expect(find.text('João Silva'), findsOneWidget);
-  expect(find.text('Corte'), findsOneWidget);
-});
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:barbearia_frontend/main.dart';
+
+void main() {
+  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(const BarbeariaApp());
+
+    // Verifica estado inicial
+    expect(find.text('0'), findsOneWidget);
+    expect(find.text('1'), findsNothing);
+
+    // Interage com widget
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pump();
+
+    // Verifica resultado
+    expect(find.text('0'), findsNothing);
+    expect(find.text('1'), findsOneWidget);
+  });
+}
 ```
 
-### Execução
+### Estado Atual dos Testes Frontend
+- **Cobertura:** Mínima (apenas smoke test do template)
+- **Necessário:** Implementar testes para:
+  - Screens individuais (home_screen, clientes_screen, etc.)
+  - Widgets customizados (agenda_card, magic_bottom_nav)
+  - ApiService (mock de HTTP)
+  - Fluxos de autenticação
+  - Integração com Provider
+
+### Execução de Testes Frontend
 ```bash
+# Todos os testes
 cd barbearia-frontend
-flutter test --coverage
+flutter test
+
+# Com verbose
+flutter test --verbose
+
+# Teste específico
+flutter test test/widget_test.dart
 ```
 
-## API Contract Testing
+## Scripts de Suporte ao Desenvolvimento
 
-### Validação de Contrato
-Antes de declarar endpoint como "funcionando", verificar:
-1. Status code esperado.
-2. Estrutura JSON (campos presentes e tipos).
-3. Dados sensíveis não expostos em erro.
+### Backend (barbearia-backend/scratch/)
+Scripts auxiliares para teste e migração:
+- `load_test.py` - Dados de teste
+- `migrate_servicos.py` - Migração de dados
 
-### Ferramenta Recomendada
-- `curl` ou Postman para testes manuais rápidos.
-- Scripts Python com `requests` para regressão automática.
+### Scripts Utilitários Disponíveis
+```bash
+# Inicializar banco com dados de exemplo
+cd barbearia-backend
+python init_db_simple.py
 
-## Testes de Integração (Chat Web)
+# Reset completo do banco
+python init_db.py  # opções de reset
+```
 
-### O que Testar
-- Fluxo completo: seleção de serviço → escolha de horário → confirmação.
-- Interface com backend: respostas da API renderizadas corretamente.
-- Estados de erro: timeout, servidor indisponível.
+## Boas Práticas de Teste
 
-### Execução
-- Teste manual via navegador (Chrome DevTools).
-- Scripts Selenium/opcionais para regressão (se necessário).
+### Backend
+1. Cada fixture deve criar dadoslimpos (create_all no início, drop_all no fim)
+2. Testes devem ser independentes (não dependem de ordem)
+3. Usar `db.session.rollback()` após falhas esperadas
+4. Nomes de testes descritivos: `test_<model>_<action>_<scenario>`
 
-## Execução Contínua
+### Frontend
+1. Usar `WidgetTester` para testes de widget
+2. Mockar `ApiService` com `ChangeNotifierProvider`
+3. Testar estados de loading, erro e sucesso
+4. Testar interações do usuário (tap, scroll, input)
 
-### CI/CD (Futuro)
-Ao configurar pipeline:
-1. Backend: `pytest` deve passar antes de merge.
-2. Frontend: `flutter test` deve passar antes de merge.
-3. Cobertura mínima: 70% combinada.
+## Métricas e Cobertura
 
-### Ordem de Execução (auditoria)
-1. Testes de models (isolados, rápidos).
-2. Testes de routes (integração, requerem DB).
-3. Testes de utils (isolados).
-4. Testes de frontend (widgets).
+### Backend
+- Testes de modelo cobrem CRUD completo
+- Falta: testes de rotas/API (integração)
+- Falta: testes de validação
 
-## Boas Práticas
+### Frontend
+- Cobertura muito baixa (apenas smoke test)
+- Prioridade: testar screens e widgets principais
 
-- **Testes atômicos**: Cada teste é independente (sem dependência entre si).
-- **Nomes descritivos**: `test_agendamento_nao_pode_ser_no_passado`.
-- **Setup/Teardown**: Limpar estado entre testes.
-- **Mockar externos**: Firebase Admin SDK em testes de notificação (não enviar notificações reais).
-
-## Reforço da Regra Global Primária
-
-Testes bem estruturados reduzem ciclos de debug e retrabalho, minimizando chamadas API desnecessárias. Investir tempo em cobertura abrangente na primeira execução evita retrabalho que multiplica requisições.
+## Credenciais de Teste
+```
+Usuário: admin
+Senha: admin123
+```

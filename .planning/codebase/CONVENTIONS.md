@@ -1,117 +1,275 @@
-# Convenções de Código — Ponto do Corte
+# CONVENTIONS
 
-## Princípio Base
+## Visão Geral
 
-Todo código deve seguir estas convenções para manter consistência e legibilidade. A regra suprema (Minimizar Requisições API) exige que estas convenções sejam aplicadas de forma consciente: escrever código correto na primeira vez evita refatorações que geram chamadas extras.
+Este documento estabelece as convenções de codificação usadas no projeto Barbearia (Ponto do Corte), um sistema de agendamento digital com backend Flask e frontend Flutter.
 
-## Python (Backend)
+## Linguagens e Nomenclatura
 
-### Estilo e Formatação
-- **Indentação**: 4 espaços (não tabs).
-- **Linha máxima**: 120 caracteres.
-- **Docstrings**: Formato Google Style para todos os módulos, classes e funções públicas.
-- **Imports**: Ordem padronizada — stdlib → third-party → local (conforme PEP 8).
+### Backend (Python)
+- **Arquivos:** `snake_case.py`
+- **Variáveis e funções:** `snake_case`
+- **Classes:** `PascalCase`
+- **Constantes:** `SCREAMING_SNAKE_CASE`
+- **Imports:** Relative imports via `from .module import symbol`
 
-### Convenções de Nomenclatura
-| Tipo | Convenção | Exemplo |
-|------|-----------|---------|
-| Variáveis/funções | `snake_case` | `buscar_agendamento()` |
-| Classes | `PascalCase` | `AgendamentoService` |
-| Constantes | `SCREAMING_SNAKE_CASE` | `MAX_RETRY_ATTEMPTS` |
-| Arquivos | `snake_case` | `agendamentos_routes.py` |
-| Métodos privados | `_snake_case` | `_validar_token()` |
+### Frontend (Dart)
+- **Arquivos:** `snake_case.dart`
+- **Variáveis e métodos:** `camelCase`
+- **Classes e tipos:** `PascalCase`
+- **Constantes:** `camelCase` (Flutter convention)
+- **Imports:** Package imports preferidos (`package:barbearia_frontend/...`)
 
-### Arquitetura de Módulos
-- **Models**: Definem estrutura SQLAlchemy. Um model por arquivo.
-- **Routes**: Lógica de endpoints via Blueprints. Um Blueprint por domínio (`agendamentos`, `auth`, etc.).
-- **Utils**: Funções auxiliares reutilizáveis (ex: `notifications.py`).
-- **Nomenclatura de Blueprint**: `nome_plural_routes` (ex: `agendamentos_routes.py` → Blueprint `agendamentos`).
+### Idioma do Código
+- **Entidades de negócio:** Português BR (`cliente.py`, `agendamento.py`, `ServicosScreen`)
+- **Infraestrutura e nativo:** Inglês (`auth.py`, `api_service.dart`, `validation.py`)
+- **Mix permitted** em utilitários quando faz sentido semântico
 
-### API REST
-- **Prefixos**: `/api/v1/<recurso>`.
-- **Verbos HTTP**: GET (leitura), POST (criação), PUT (atualização), DELETE (remoção).
-- **Respostas de erro**: JSON com `{"erro": "mensagem", "codigo": 400}`.
-- **Status codes**: 200 (sucesso), 201 (criado), 400 (erro cliente), 401 (não autenticado), 404 (não encontrado), 500 (erro servidor).
+## Arquitetura Backend
 
-### Validação e Segurança
-- Validar todas as entradas antes de processar.
-- Tokens JWT com expiração definida (configurável via `.env`).
-- Nunca expor dados sensíveis em logs ou respostas de erro.
-- Queries parametrizadas (SQLAlchemy ORM previne injeção por padrão).
-
-## Dart/Flutter (Frontend)
-
-### Estilo e Formatação
-- **Indentação**: 2 espaços.
-- **Linha máxima**: 100 caracteres.
-- **Documentação**: Comentários `///` para APIs públicas, `//` para lógica interna.
-
-### Convenções de Nomenclatura
-| Tipo | Convenção | Exemplo |
-|------|-----------|---------|
-| Variáveis/funções | `camelCase` | `fetchAgendamentos()` |
-| Classes/Types | `PascalCase` | `AgendamentoModel` |
-| Constantes | `kCamelCase` | `kDefaultTimeout` |
-| Arquivos | `snake_case` | `agendamento_model.dart` |
-
-### Estrutura de diretórios (lib/)
+### Estrutura de Diretórios
 ```
-lib/
-  main.dart
-  screens/        # Telas completas
-  widgets/        # Componentes reutilizáveis
-  models/         # Modelos de dados
-  providers/      # Gerenciamento de estado (Provider)
-  services/       # Comunicação API (ApiService)
-  theme/          # Design System
+barbearia-backend/
+├── app.py              # Entry point da aplicação Flask
+├── config.py           # Configurações (Dev/Prod)
+├── models/             # Modelos SQLAlchemy
+│   ├── __init__.py     # db instance + exports
+│   ├── cliente.py
+│   ├── servico.py
+│   ├── agendamento.py
+│   └── [outros modelos]
+├── routes/             # Blueprints Flask
+│   ├── __init__.py     # register_blueprints()
+│   ├── auth.py
+│   ├── clientes.py
+│   ├── agendamentos.py
+│   └── public.py
+├── utils/              # Utilitários
+│   ├── auth.py         # Decorator @login_required
+│   ├── validation.py   # Validação de telefone
+│   └── notifications.py
+└── tests/              # Suite pytest
 ```
 
-### Estado e Ciclos de Vida
-- Provider para estado global (autenticação, configurações).
-- StatelessWidget quando possível.
-- .dispose() implementado corretamente em StatefulWidgets.
+### Padrões SQLAlchemy
+```python
+# Modelo padrão
+class Entidade(db.Model):
+    __tablename__ = 'entidades'
 
-### Requisições HTTP
-- Uri completa em cada chamada (não hardcoded).
-- Headers Authorization para endpoints protegidos: `Authorization: Bearer <token>`.
-- Tratamento de erros em try-catch com fallback visual.
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nome = db.Column(db.String(100), nullable=False)
+    # ... outros campos
 
-## JavaScript (Chat Web)
+    def __init__(self, nome, ...):
+        self.nome = nome
 
-### Estilo e Formatação
-- **Indentação**: 2 espaços.
-- **Linha máxima**: 100 caracteres.
+    def to_dict(self):
+        """Converte para dicionário (serialização)."""
+        return {'id': self.id, 'nome': self.nome, ...}
 
-### Convenções de Nomenclatura
-| Tipo | Convenção | Exemplo |
-|------|-----------|---------|
-| Variáveis/funções | `camelCase` | `formatDate()` |
-| Constantes | `SCREAMING_SNAKE_CASE` | `API_BASE_URL` |
-| Arquivos | `snake_case` | `chat_ui.js` |
+    def __repr__(self):
+        return f'<Entidade {self.id}: {self.nome}>'
+```
 
-### Estrutura
-- Vanilla JS (sem frameworks).
-- Arquivo único `chat_ui.js` para interface pública.
-- Separation of concerns: DOM manipulation separada da lógica de negócio.
+### Padrão Blueprint
+```python
+# routes/entidade.py
+entidade_bp = Blueprint('entidade', __name__)
 
-## Git e Versionamento
+@entidade_bp.route('/api/entidade', methods=['GET'])
+@login_required
+def get_entidade():
+    """Retorna todas as entidades."""
+    entidades = Entidade.query.all()
+    return jsonify([e.to_dict() for e in entidades])
+```
 
-### Mensagens de Commit
-- Formato: `tipo(escopo): descrição`
-- Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
-- Exemplo: `feat(agendamentos): adicionar endpoint de cancelamento`
+### Decorator de Autenticação
+```python
+# utils/auth.py
+def login_required(f):
+    """Verifica token JWT no header Authorization: Bearer <token>."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = extract_token(request)
+        if not token:
+            return jsonify({'error': 'Token não fornecido'}), 401
+        # decode and validate...
+        return f(*args, **kwargs)
+    return decorated
+```
 
-### Branches
-- `main`: código de produção.
-- `feature/`: desenvolvimento de novas funcionalidades.
-- `fix/`: correções de bugs.
-- `docs/`: documentação.
+### Respostas de Erro Padronizadas
+```python
+# Sucesso
+return jsonify({'message': 'Sucesso', 'data': result}), 200
+return jsonify({'id': new_id, 'message': 'Criado'}), 201
 
-## Validação Local (Pre-commit)
+# Erro
+return jsonify({'error': 'Descrição do erro'}), 400
+return jsonify({'error': 'Não encontrado'}), 404
+return jsonify({'error': str(e)}), 500
+```
 
-Antes de cada commit, garantir:
-1. Python: `python -m py_compile <arquivo>` sem erros.
-2. Dart: `flutter analyze` sem errors (warnings aceitáveis).
-3. JS: Console do navegador sem erros.
+## Arquitetura Frontend
 
-Estas verificações locais evitam regressões e minimizam a necessidade de múltiplas rodadas de correção — alinhado à Regra Global Primária de minimizar chamadas API.
+### Estrutura de Diretórios
+```
+barbearia-frontend/lib/
+├── main.dart              # Entry point + Firebase init
+├── services/
+│   └── api_service.dart   # Comunicação REST + state
+├── screens/
+│   ├── home_screen.dart   # Dashboard + IndexedStack
+│   ├── clientes_screen.dart
+│   ├── servicos_screen.dart
+│   └── [outras telas]
+├── widgets/
+│   ├── magic_bottom_nav.dart
+│   └── agenda_card.dart
+└── theme/
+    └── app_theme.dart     # Material theme builder
+```
+
+### Padrões Flutter
+```dart
+// StatelessWidget padrão
+class MyWidget extends StatelessWidget {
+  const MyWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SomeWidget();
+  }
+}
+
+// StatefulWidget com lifecycle
+class MyStatefulWidget extends StatefulWidget {
+  const MyStatefulWidget({super.key});
+
+  @override
+  State<MyStatefulWidget> createState() => _MyStatefulWidgetState();
+}
+
+class _MyStatefulWidgetState extends State<MyStatefulWidget> {
+  @override
+  void initState() {
+    super.initState();
+    // inicialização
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SomeWidget();
+  }
+}
+```
+
+### Provider para Estado
+```dart
+// ApiService como ChangeNotifier
+class ApiService extends ChangeNotifier {
+  // estado...
+
+  Future<void> loadData() async {
+    // ...
+    notifyListeners();
+  }
+}
+
+// Uso
+return MultiProvider(
+  providers: [
+    ChangeNotifierProvider(create: (_) => ApiService()),
+  ],
+  child: MaterialApp(...)
+);
+```
+
+### Classes de Modelo
+```dart
+class Entidade {
+  final int id;
+  final String nome;
+
+  Entidade({required this.id, required this.nome});
+
+  factory Entidade.fromJson(Map<String, dynamic> json) {
+    return Entidade(
+      id: json['id'],
+      nome: json['nome'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'id': id, 'nome': nome};
+}
+```
+
+## REST API Conventions
+
+### Endpoints Backend
+- **Prefixo:** `/api/`
+- **Autenticação:** Token JWT no header `Authorization: Bearer <token>`
+- **Formato resposta:** JSON
+- **Autenticação opcional:** `/api/public/*`
+
+### Endpoints Públicos (sem auth)
+```
+GET  /api/public/servicos
+GET  /api/public/horarios
+POST /api/public/cliente
+POST /api/public/agendar
+```
+
+### Endpoints Protegidos (JWT required)
+```
+POST /api/auth/login
+GET  /api/clientes
+POST /api/clientes
+GET  /api/agendamentos
+PUT  /api/agendamentos/{id}/concluir
+PUT  /api/agendamentos/{id}/cancelar
+GET  /api/agenda/hoje
+GET  /api/dashboard/resumo
+```
+
+## Formatação e Estilo
+
+### Python
+- 4 espaços para indentação (não tabs)
+- Linhas máximo 120 caracteres
+- Imports agrupados: stdlib → third-party → local
+- Docstrings em todas as funções pública
+
+### Dart
+- 2 espaços para indentação
+- Linhas máximo 80 caracteres (Flutter convention)
+- `const` para widgets e valores imutáveis quando possível
+- Trailing commas em collections
+
+## Configurações de Linting
+
+### Python (requirements.txt tooling)
+```
+flask
+flask-cors
+flask-sqlalchemy
+flask-jwt-extended
+pytest
+```
+
+### Flutter (analysis_options.yaml)
+```yaml
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # custom rules as needed
+```
+
+## Credentials de Teste
+```
+Usuário: admin
+Senha: admin123
+```
