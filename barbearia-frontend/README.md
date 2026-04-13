@@ -1,25 +1,21 @@
-# Barbearia Frontend - App de Agendamento
+# Barbearia Frontend - Ponto do Corte
 
-Aplicativo Flutter para agendamento de barbearia.
+Aplicativo Flutter para gerenciamento de barbearia com agendamento digital e notificações push.
 
-## Funcionalidades
+## Requisitos
 
-- ✅ Visualizar agenda do dia
-- ✅ Gerenciar clientes (listar, adicionar)
-- ✅ Gerenciar serviços (listar)
-- ✅ Gerenciar agendamentos (listar, filtrar por status)
-- ✅ Criar novos agendamentos
-- ✅ Concluir/cancelar agendamentos
+- **Flutter 3.x+** (testado com Flutter mais recente)
+- **Dart SDK**
+- **Windows SDK** (para build Windows)
+- **Backend** rodando (Python/Flask)
+
+## Plataformas Suportadas
+
+- Windows (x64) — Build nativo desktop
+- Android — Build móvel
+- Web — Chat de autoatendimento
 
 ## Instalação
-
-### Pré-requisitos
-
-- Flutter SDK (versão 3.0.0 ou superior)
-- Dart SDK
-- Backend da Barbearia rodando (ver `../barbearia-backend/README.md`)
-
-### Passos
 
 1. **Instalar dependências:**
 ```bash
@@ -27,97 +23,94 @@ cd barbearia-frontend
 flutter pub get
 ```
 
-2. **Configurar URL da API:**
-   - O arquivo `.env` já está configurado com `API_BASE_URL=http://localhost:5000`
-   - Se necessário, altere para a URL do seu backend
+2. **Configurar ambiente:**
+```bash
+cp .env.example .env  # Configure API_BASE_URL se necessário
+```
 
 3. **Iniciar o backend:**
 ```bash
 cd ../barbearia-backend
+pip install -r requirements.txt
 python init_db_simple.py
-python run.py
+python app.py
 ```
 
-4. **Executar o app:**
+4. **Executar o app (Windows):**
 ```bash
-cd barbearia-frontend
-flutter run
+flutter run -d windows
 ```
 
-## Estrutura do Projeto
+5. **Build de release (Windows):**
+```bash
+flutter build windows --release
+```
+
+O executável será gerado em: `build/windows/x64/runner/Release/barbearia_frontend.exe`
+
+## Funcionalidades
+
+- Dashboard com resumo financeiro e agenda do dia
+- Navegação persistente (bottom nav bar) — sempre visível
+- Gerenciamento de clientes
+- Gerenciamento de serviços
+- Visualização e filtros de agendamentos
+- Notificações push em tempo real (FCM)
+- Chat web de autoatendimento para clientes
+- Feedback tátil (haptic feedback) em interações
+
+## Arquitetura
 
 ```
 barbearia-frontend/
 ├── lib/
-│   ├── main.dart              # Ponto de entrada do app
+│   ├── main.dart              # Entry point + Firebase init
 │   ├── services/
-│   │   └── api_service.dart   # Serviço de comunicação com API
+│   │   └── api_service.dart   # Comunicação REST + FCM token
 │   ├── screens/
-│   │   ├── home_screen.dart   # Tela inicial com agenda do dia
+│   │   ├── home_screen.dart   # Dashboard + IndexedStack nav
 │   │   ├── clientes_screen.dart
 │   │   ├── servicos_screen.dart
 │   │   ├── agendamentos_screen.dart
-│   │   └── novo_agendamento_screen.dart
+│   │   ├── financeiro_screen.dart
+│   │   ├── settings_screen.dart
+│   │   └── about_screen.dart
 │   └── widgets/
-│       └── agenda_card.dart   # Widget de card de agendamento
-├── pubspec.yaml              # Dependências do projeto
-└── .env                      # Configurações de ambiente
+│       ├── magic_bottom_nav.dart  # Bottom nav flutuante
+│       └── agenda_card.dart
+├── pubspec.yaml
+└── .env
 ```
 
-## Telas do App
+## API Integration
 
-### 1. Home Screen
-- Agenda do dia atual
-- Atualização em tempo real
-- Menu lateral para navegação
-- Botão para novo agendamento
+O app se comunica com o backend via REST API:
 
-### 2. Clientes Screen
-- Lista de clientes cadastrados
-- Formulário para adicionar novo cliente
-- Atualização automática após cadastro
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| POST | /api/auth/login | Login JWT |
+| GET | /api/clientes | Listar clientes |
+| GET | /api/agenda/hoje | Agenda do dia |
+| GET | /api/dashboard/resumo | Dados financeiros |
+| PUT | /api/agendamentos/{id}/concluir | Concluir serviço |
 
-### 3. Serviços Screen
-- Lista de serviços disponíveis
-- Preços e durações
-- Informações detalhadas
+## Notificações Push
 
-### 4. Agendamentos Screen
-- Lista completa de agendamentos
-- Filtros por status (todos, agendados, concluídos, cancelados)
-- Ações para concluir/cancelar agendamentos
+Firebase Cloud Messaging (FCM) envia notificações em tempo real quando um cliente faz um agendamento pelo chat web. O token FCM é registrado no login.
 
-### 5. Novo Agendamento Screen
-- Formulário para criar novo agendamento
-- Seleção de cliente, serviço, data e hora
-- Campo para observações
+## Tecnologias
 
-## Dependências
+- Flutter + Provider (estado)
+- Firebase Cloud Messaging
+- Google Fonts (Outfit)
+- HTTP + flutter_dotenv
 
-- `http`: Comunicação com API REST
-- `provider`: Gerenciamento de estado
-- `intl`: Formatação de datas
-- `flutter_dotenv`: Configurações de ambiente
+## Credenciais de Teste
 
-## Testando
-
-### Com emulador/dispositivo físico
-```bash
-flutter run
 ```
-
-### Verificar build
-```bash
-flutter build apk --debug
+Usuário: admin
+Senha: admin123
 ```
-
-## Próximos Passos
-
-1. Adicionar autenticação
-2. Implementar notificações push
-3. Adicionar relatórios
-4. Suporte offline
-5. Exportar agenda
 
 ## Licença
 

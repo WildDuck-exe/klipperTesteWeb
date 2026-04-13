@@ -1,145 +1,102 @@
-# Barbearia API - Agenda Digital para Barbearia
+# Barbearia Backend - Ponto do Corte
 
-API backend para sistema de agendamento de barbearia desenvolvido em Python/Flask.
+API backend para sistema de agendamento de barbearia desenvolvido em Python/Flask com SQLAlchemy.
 
-## Funcionalidades
+## Requisitos
 
-- ✅ Cadastro de clientes
-- ✅ Cadastro de serviços
-- ✅ Agendamento de horários
-- ✅ Visualização da agenda do dia
-- ✅ Marcar agendamentos como concluídos/cancelados
+- **Python 3.14+** (testado com Python 3.14.3)
+- **pip** (gerenciador de pacotes Python)
 
-## Instalação Rápida
+## Instalação
 
 1. **Instalar dependências:**
 ```bash
-pip install flask flask-cors
+pip install -r requirements.txt
 ```
 
-2. **Criar banco de dados:**
+2. **Configurar variáveis de ambiente:**
+Crie um arquivo `.env` na raiz do projeto com as chaves do Firebase:
+```
+FIREBASE_CREDENTIALS_PATH=./firebase-credentials.json
+```
+
+3. **Iniciar o servidor:**
 ```bash
-python init_db_simple.py
+python app.py
 ```
 
-3. **Iniciar servidor:**
+O servidor inicia em `http://localhost:5000`
+
+## Funcionalidades
+
+- Cadastro de clientes
+- Cadastro de serviços
+- Agendamento de horários
+- Visualização da agenda do dia
+- Autenticação JWT para endpoints admin
+- Notificações push via Firebase Cloud Messaging
+- Chat web de autoatendimento para clientes
+
+## API Pública (sem autenticação)
+
+```
+GET  /api/public/servicos          - Listar serviços disponíveis
+GET  /api/public/horarios          - Listar horários disponíveis
+GET  /api/public/validate-phone    - Validar telefone brasileiro
+POST /api/public/cliente           - Criar/buscar cliente por telefone
+POST /api/public/agendar           - Criar agendamento via chat
+```
+
+## API Admin (requer token JWT)
+
+```
+POST /api/auth/login               - Login (retorna token JWT)
+GET  /api/clientes                 - Listar clientes
+POST /api/clientes                 - Criar cliente
+GET  /api/agendamentos            - Listar agendamentos
+PUT  /api/agendamentos/{id}/concluir - Marcar como concluído
+PUT  /api/agendamentos/{id}/cancelar - Cancelar agendamento
+GET  /api/agenda/hoje              - Agenda do dia
+GET  /api/dashboard/resumo         - Resumo financeiro
+```
+
+## Estrutura do Projeto
+
+```
+barbearia-backend/
+├── app.py              # Entry point
+├── config.py           # Configurações
+├── requirements.txt    # Dependências Python
+├── routes/             # Rotas modularizadas (Blueprints)
+│   ├── auth.py
+│   ├── clientes.py
+│   ├── agendamentos.py
+│   └── public.py
+├── models/             # Modelos SQLAlchemy
+├── utils/              # Utilitários (notificações FCM)
+└── static/chat/        # Interface web do chat
+```
+
+## Testes
+
 ```bash
-python run.py
+cd barbearia-backend
+python -m pytest
 ```
-
-## Endpoints da API
-
-### Status da API
-```
-GET http://localhost:5000/
-```
-
-### Clientes
-```
-GET    /api/clientes          - Listar todos os clientes
-GET    /api/clientes/{id}     - Obter cliente específico
-POST   /api/clientes          - Criar novo cliente
-```
-
-**Exemplo POST /api/clientes:**
-```json
-{
-  "nome": "João Silva",
-  "telefone": "(11) 99999-9999"
-}
-```
-
-### Serviços
-```
-GET    /api/servicos          - Listar todos os serviços
-POST   /api/servicos          - Criar novo serviço
-```
-
-**Exemplo POST /api/servicos:**
-```json
-{
-  "nome": "Corte de Cabelo",
-  "descricao": "Corte tradicional",
-  "duracao_minutos": 30,
-  "preco": 30.00
-}
-```
-
-### Agendamentos
-```
-GET    /api/agendamentos      - Listar todos os agendamentos
-POST   /api/agendamentos      - Criar novo agendamento
-PUT    /api/agendamentos/{id}/concluir - Marcar como concluído
-PUT    /api/agendamentos/{id}/cancelar - Cancelar agendamento
-GET    /api/agenda/hoje       - Agenda do dia atual
-```
-
-**Exemplo POST /api/agendamentos:**
-```json
-{
-  "cliente_id": 1,
-  "servico_id": 1,
-  "data_hora": "2026-04-10 14:30:00",
-  "observacoes": "Prefere tesoura",
-  "status": "agendado"
-}
-```
-
-## Estrutura do Banco de Dados
-
-### Tabela: clientes
-- id (INTEGER, PRIMARY KEY)
-- nome (TEXT, NOT NULL)
-- telefone (TEXT)
-- data_cadastro (DATETIME, DEFAULT CURRENT_TIMESTAMP)
-
-### Tabela: servicos
-- id (INTEGER, PRIMARY KEY)
-- nome (TEXT, NOT NULL)
-- descricao (TEXT)
-- duracao_minutos (INTEGER, DEFAULT 30)
-- preco (DECIMAL(10,2))
-
-### Tabela: agendamentos
-- id (INTEGER, PRIMARY KEY)
-- cliente_id (INTEGER, NOT NULL, FOREIGN KEY)
-- servico_id (INTEGER, NOT NULL, FOREIGN KEY)
-- data_hora (DATETIME, NOT NULL)
-- observacoes (TEXT)
-- status (TEXT, DEFAULT 'agendado')
-
-## Testando a API
-
-### Com curl:
-```bash
-# Listar clientes
-curl http://localhost:5000/api/clientes
-
-# Criar cliente
-curl -X POST http://localhost:5000/api/clientes \
-  -H "Content-Type: application/json" \
-  -d '{"nome": "Novo Cliente", "telefone": "(11) 99999-9999"}'
-
-# Listar agenda do dia
-curl http://localhost:5000/api/agenda/hoje
-```
-
-### Com Postman/Insomnia:
-Importar a coleção de endpoints disponível em `docs/postman_collection.json`
-
-## Próximos Passos
-
-1. Desenvolver frontend Flutter
-2. Adicionar autenticação
-3. Implementar relatórios
-4. Adicionar notificações
 
 ## Tecnologias
 
-- Python 3.x
-- Flask (Microframework)
-- SQLite (Banco de dados)
-- Flask-CORS (Cross-Origin Resource Sharing)
+- Python 3.14+ (Flask, SQLAlchemy)
+- Firebase Admin SDK (notificações push)
+- JWT (autenticação)
+- SQLite (banco de dados)
+
+## Credenciais de Teste
+
+```
+Usuário: admin
+Senha: admin123
+```
 
 ## Licença
 
