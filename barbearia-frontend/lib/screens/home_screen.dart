@@ -119,29 +119,27 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() => _selectedIndex = index);
         },
       ),
-      floatingActionButton: _selectedIndex < 5 ? Padding(
-        padding: const EdgeInsets.only(bottom: 80),
-        child: FloatingActionButton(
-          onPressed: () {
-            HapticFeedback.mediumImpact();
-            if (_selectedIndex == 4) {
-              // Financeiro — open Nova Despesa bottom sheet
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                builder: (ctx) => _buildNovaDespesaSheet(ctx),
-              );
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const NovoAgendamentoScreen()),
-              );
-            }
-          },
-          backgroundColor: _selectedIndex == 4 ? Colors.redAccent : const Color(0xFF0D47A1),
-          foregroundColor: Colors.white,
-          child: Icon(_selectedIndex == 4 ? Icons.remove : Icons.add),
-        ),
+      floatingActionButton: [0, 2, 4].contains(_selectedIndex) ? FloatingActionButton(
+        onPressed: () {
+          HapticFeedback.mediumImpact();
+          if (_selectedIndex == 4) {
+            // Financeiro — open Nova Despesa bottom sheet
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              builder: (ctx) => _buildNovaDespesaSheet(ctx),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NovoAgendamentoScreen()),
+            );
+          }
+        },
+        backgroundColor: _selectedIndex == 4 ? Colors.redAccent : const Color(0xFF0D47A1),
+        foregroundColor: Colors.white,
+        heroTag: 'home_fab',
+        child: Icon(_selectedIndex == 4 ? Icons.remove : Icons.add),
       ) : null,
       drawer: isDesktop ? null : _buildDrawer(),
     );
@@ -154,9 +152,13 @@ class _HomeScreenState extends State<HomeScreen> {
           'Dashboard',
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
         ),
-        leading: isDesktop ? null : IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => Scaffold.of(context).openDrawer(),
+        leading: isDesktop ? null : Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            );
+          }
         ),
         actions: [
           IconButton(
@@ -504,6 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
             controller: valorController,
             decoration: const InputDecoration(labelText: 'Valor (R\$)', border: OutlineInputBorder(), prefixText: 'R\$ '),
             keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
           ),
           const SizedBox(height: 20),
           SizedBox(

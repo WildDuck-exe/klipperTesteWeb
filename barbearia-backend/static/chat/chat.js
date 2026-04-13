@@ -98,7 +98,8 @@ userInput.addEventListener('input', () => {
 
 function validarTelefone() {
     const digits = apenasDigitos(userInput.value);
-    const valid = digits.length === 11 && digits.startsWith('9');
+    // Aceita 11 dígitos independentes do dígito após o DDD
+    const valid = digits.length === 11;
     userInput.style.borderColor = valid ? 'var(--success, #22c55e)' : (digits.length > 0 ? 'var(--error, #ef4444)' : '');
     return valid;
 }
@@ -121,9 +122,9 @@ function handleUserInput() {
     } else if (state === 'PHONE') {
         // Liberal input — strip all non-digits, accept any punctuation user typed
         const digits = apenasDigitos(text);
-        if (digits.length !== 11 || !digits.startsWith('9')) {
+        if (digits.length !== 11) {
             // If we already showed the same error, just shake the existing bubble
-            const errorMsg = `O número precisa ter <strong>11 dígitos</strong> com 9 depois do DDD.<br>Exemplo: <strong>(71)98888-7777</strong>`;
+            const errorMsg = `O número precisa ter <strong>11 dígitos</strong> com DDD.<br>Exemplo: <strong>(71)99288-7024</strong>`;
             if (lastErrorText && lastErrorText.includes('11 dígitos')) {
                 const bubbles = chatWindow.querySelectorAll('.message.system .bubble');
                 if (bubbles.length > 0) {
@@ -145,6 +146,8 @@ function handleUserInput() {
         userInput.value = '';
         state = 'SERVICE';
         setTimeout(() => showServices(), 500);
+    } else if (state === 'DATE') {
+        handleDateInput();
     }
 }
 
@@ -319,12 +322,9 @@ function handleDateInput() {
     showTimes();
 }
 
-// Substitui o handler do sendBtn para data
-document.getElementById('user-input').addEventListener('change', () => {
-    if (state === 'DATE') {
-        handleDateInput();
-    }
-});
+// O evento automático "change" foi desativado para o Input Date. 
+// O disparo ocorria intermitentemente antes da hora certa.
+// Agora aguardamos o consentimento pelo botão enviar do Flow.
 
 // ─── Fluxo: Horários ─────────────────────────────────────────────────────────
 async function showTimes() {
@@ -340,7 +340,7 @@ async function showTimes() {
             return;
         }
 
-        addMessage(`Temos <strong>${data.disponiveis.length}</strong> horários disponíveis. Qual prefere?`, "system");
+        addMessage(`Temos <strong>${data.disponiveis.length}</strong> horários disponíveis. Qual prefere?`, "system", true);
 
         const grid = document.createElement('div');
         grid.className = 'horarios-grid';
@@ -528,6 +528,10 @@ function resetChat() {
     userData.data = '';
     userData.data_hora = '';
 
+    userInput.type = 'text';
+    userInput.disabled = true;
+    userInput.value = '';
+
     chatWindow.innerHTML = '';
     state = 'SERVICE';
 
@@ -541,9 +545,18 @@ function resetChat() {
 
 function esqueci() {
     localStorage.removeItem(STORAGE_KEY);
-    userData.nome = '';
-    userData.telefone = '';
-    userData.telefoneFormatado = '';
+    userData = {
+        nome: '',
+        telefone: '',
+        telefoneFormatado: '',
+        servico_id: null,
+        servico_nome: '',
+        data: '',
+        data_hora: ''
+    };
+    userInput.type = 'text';
+    userInput.disabled = false;
+    userInput.value = '';
     chatWindow.innerHTML = '';
     state = 'NAME';
     init();

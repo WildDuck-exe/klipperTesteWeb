@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --bg-color: #0d0f14;
     --card-bg: rgba(255, 255, 255, 0.05);
     --accent-color: #3b82f6;
@@ -215,17 +215,26 @@ input {
 }
 
 /* Service Cards */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 8px;
+    width: 100%;
+}
+
 .service-card {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
-    padding: 16px;
+    padding: 14px 10px;
     cursor: pointer;
     transition: all 0.25s ease;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    text-align: center;
     gap: 6px;
-    margin-bottom: 8px;
 }
 
 .service-card:hover {

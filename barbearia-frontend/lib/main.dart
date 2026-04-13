@@ -25,7 +25,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
-    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isWindows)) {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       await Firebase.initializeApp();
       FirebaseMessaging messaging = FirebaseMessaging.instance;
       

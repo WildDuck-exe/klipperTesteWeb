@@ -46,14 +46,14 @@ class AppTheme {
       ),
 
       appBarTheme: AppBarTheme(
-        backgroundColor: scaffoldBg,
-        foregroundColor: isDark ? Colors.white : primaryNavy,
+        backgroundColor: const Color(0xFF0D47A1),
+        foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: GoogleFonts.outfit(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : primaryNavy,
+          color: Colors.white,
         ),
       ),
 

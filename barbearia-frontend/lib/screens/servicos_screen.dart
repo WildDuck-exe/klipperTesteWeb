@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
@@ -45,10 +46,12 @@ class _ServicosScreenState extends State<ServicosScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => _abrirFormulario(),
-        label: const Text('Novo Serviço'),
-        icon: const Icon(Icons.add),
+        heroTag: 'servicos_fab',
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
       body: api.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -217,6 +220,7 @@ class _ServicoFormState extends State<_ServicoForm> {
                       controller: _precoController,
                       decoration: const InputDecoration(labelText: 'Preço (R\$)', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                       validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                     ),
                   ),
@@ -226,6 +230,7 @@ class _ServicoFormState extends State<_ServicoForm> {
                       controller: _duracaoController,
                       decoration: const InputDecoration(labelText: 'Duração (min)', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                     ),
                   ),

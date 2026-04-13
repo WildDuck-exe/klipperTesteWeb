@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
@@ -52,6 +53,7 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
               controller: valorController,
               decoration: const InputDecoration(labelText: 'Valor (R\$)', border: OutlineInputBorder(), prefixText: 'R\$ '),
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -87,8 +89,6 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Financeiro'),
-        backgroundColor: const Color(0xFF0D47A1),
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

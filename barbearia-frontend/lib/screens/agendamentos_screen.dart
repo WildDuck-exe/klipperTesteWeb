@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_service.dart';
 import '../widgets/agenda_card.dart';
@@ -40,6 +41,84 @@ class _AgendamentosScreenState extends State<AgendamentosScreen> {
     return agendamentos
         .where((ag) => ag.status == _filtroStatus)
         .toList();
+  }
+
+  String _formatarDataHora(String dataHora) {
+    try {
+      final dateTime = DateTime.parse(dataHora);
+      return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
+    } catch (e) {
+      return dataHora;
+    }
+  }
+
+  Future<void> _abrirWhatsApp(Agendamento agendamento, String template) async {
+    if (agendamento.clienteTelefone.isEmpty) return;
+
+    String text = template
+        .replaceAll('{nome}', agendamento.clienteNome)
+        .replaceAll('{servico}', agendamento.servicoNome)
+        .replaceAll('{data_hora}', _formatarDataHora(agendamento.dataHora));
+
+    final url = Uri.parse('whatsapp://send?phone=55${agendamento.clienteTelefone}&text=${Uri.encodeComponent(text)}');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      final webUrl = Uri.parse('https://wa.me/55${agendamento.clienteTelefone}?text=${Uri.encodeComponent(text)}');
+      launchUrl(webUrl, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _confirmarCancelamento(Agendamento agendamento, ApiService apiService) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancelar Agendamento'),
+        content: const Text('Deseja realmente cancelar este horário?\n\nVocê também pode avisar o cliente via WhatsApp dizendo que foi cancelado.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Voltar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              _executarCancelamento(agendamento, apiService, false);
+            },
+            child: const Text('Apenas Cancelar', style: TextStyle(color: Colors.red)),
+          ),
+          if (agendamento.clienteTelefone.isNotEmpty)
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () async {
+                Navigator.pop(context);
+                _executarCancelamento(agendamento, apiService, true);
+              },
+              icon: const Icon(Icons.chat, color: Colors.white, size: 18),
+              label: const Text('Cancelar e Avisar', style: TextStyle(color: Colors.white)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _executarCancelamento(Agendamento agendamento, ApiService apiService, bool avisarWhatsapp) async {
+    final result = await apiService.cancelarAgendamento(agendamento.id);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message']),
+          backgroundColor: result['success'] == true ? Colors.green : Colors.red,
+        ),
+      );
+      if (result['success'] == true) {
+        _refreshAgendamentos();
+        if (avisarWhatsapp) {
+          final template = apiService.configs['whatsapp_mensagem_cancelamento'] ?? 'Olá {nome}, seu agendamento de {servico} foi cancelado.';
+          _abrirWhatsApp(agendamento, template);
+        }
+      }
+    }
   }
 
   @override
@@ -129,7 +208,7 @@ class _AgendamentosScreenState extends State<AgendamentosScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 const Text(
-                                  'Toque em + para criar',
+                                  'Toque no botão + na aba inicial',
                                   style: TextStyle(fontSize: 14, color: Colors.grey),
                                 ),
                               ],
@@ -145,47 +224,39 @@ class _AgendamentosScreenState extends State<AgendamentosScreen> {
                                 final agendamento = agendamentosFiltrados[index];
                                 return AgendaCard(
                                   agendamento: agendamento,
+                                  onWhatsapp: agendamento.clienteTelefone.isNotEmpty
+                                      ? () {
+                                          final template = apiService.configs['whatsapp_mensagem'] ?? 'Olá {nome}, tudo bem? Confirmando seu agendamento de {servico} para as {data_hora}.';
+                                          _abrirWhatsApp(agendamento, template);
+                                        }
+                                      : null,
                                   onConcluir: agendamento.status == 'agendado'
                                       ? () async {
                                           final result = await apiService.concluirAgendamento(agendamento.id);
                                           if (result['success'] == true) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(result['message']),
-                                                backgroundColor: Colors.green,
-                                              ),
-                                            );
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(result['message']),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            }
                                             _refreshAgendamentos();
                                           } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(result['message']),
-                                                backgroundColor: Colors.red,
-                                              ),
-                                            );
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(result['message']),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
                                           }
                                         }
                                       : null,
                                   onCancelar: agendamento.status == 'agendado'
-                                      ? () async {
-                                          final result = await apiService.cancelarAgendamento(agendamento.id);
-                                          if (result['success'] == true) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(result['message']),
-                                                backgroundColor: Colors.green,
-                                              ),
-                                            );
-                                            _refreshAgendamentos();
-                                          } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(result['message']),
-                                                backgroundColor: Colors.red,
-                                              ),
-                                            );
-                                          }
-                                        }
+                                      ? () => _confirmarCancelamento(agendamento, apiService)
                                       : null,
                                 );
                               },

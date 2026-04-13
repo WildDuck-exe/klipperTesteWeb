@@ -46,7 +46,13 @@ def add_default_config():
     configs = [
         ('horario_inicio', '08:00', 'Horário de abertura da barbearia'),
         ('horario_fim', '18:00', 'Horário de fechamento da barbearia'),
-        ('whatsapp_mensagem', 'Olá {nome}, tudo bem? Sou da barbearia Ponto do Corte. Confirmando seu agendamento de {servico} para {data_hora}. Podemos confirmar?', 'Template de mensagem para WhatsApp')
+        ('dias_trabalho', '1,2,3,4,5,6', 'Dias da semana de expediente (0=Dom, 1=Seg...)'),
+        ('pausa_inicio', '12:00', 'Horário de início do almoço/pausa'),
+        ('pausa_fim', '13:00', 'Horário de término do almoço/pausa'),
+        ('whatsapp_mensagem', 'Olá {nome}, tudo bem? Sou da barbearia Ponto do Corte. Confirmando seu agendamento de {servico} para {data_hora}. Podemos confirmar?', 'Mensagem Recepção'),
+        ('whatsapp_mensagem_pausa', 'Olá, estamos em horário de almoço no momento. Retornaremos em breve!', 'Mensagem Pausa'),
+        ('whatsapp_mensagem_fechado', 'Olá, a barbearia encontra-se fechada no momento. Nosso horário de atendimento é...', 'Mensagem Fechado'),
+        ('whatsapp_mensagem_cancelamento', 'Olá {nome}, infelizmente precisaremos desmarcar ou remarcar seu horário de {servico} para {data_hora}. Gostaria de escolher um novo horário?', 'Mensagem Cancelamento')
     ]
     
     for chave, valor, desc in configs:

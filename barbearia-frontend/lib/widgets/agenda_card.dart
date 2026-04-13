@@ -10,12 +10,14 @@ class AgendaCard extends StatelessWidget {
   final Agendamento agendamento;
   final VoidCallback? onConcluir;
   final VoidCallback? onCancelar;
+  final VoidCallback? onWhatsapp;
 
   const AgendaCard({
     super.key,
     required this.agendamento,
     this.onConcluir,
     this.onCancelar,
+    this.onWhatsapp,
   });
 
   Color _getStatusColor(String status) {
@@ -64,7 +66,7 @@ class AgendaCard extends StatelessWidget {
                 width: 80,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [statusColor, statusColor.withOpacity(0.8)],
+                    colors: [statusColor, statusColor.withValues(alpha: 0.8)],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -114,7 +116,31 @@ class AgendaCard extends StatelessWidget {
                       _buildInfoRow(Icons.cut_outlined, agendamento.servicoNome, isDark),
                       if (agendamento.clienteTelefone.isNotEmpty) ...[
                         const SizedBox(height: 8),
-                        _buildInfoRow(Icons.phone_outlined, agendamento.clienteTelefone, isDark),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildInfoRow(Icons.phone_outlined, agendamento.clienteTelefone, isDark),
+                            if (onWhatsapp != null)
+                              InkWell(
+                                onTap: onWhatsapp,
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.chat, size: 16, color: Colors.green),
+                                      const SizedBox(width: 4),
+                                      Text('WhatsApp', style: GoogleFonts.outfit(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                       
                       if (agendamento.status == 'agendado') ...[
@@ -136,7 +162,7 @@ class AgendaCard extends StatelessWidget {
                               child: _buildActionButton(
                                 'Concluir', 
                                 Icons.check, 
-                                const Color(0xFF22C55E).withOpacity(0.1), 
+                                const Color(0xFF22C55E).withValues(alpha: 0.1), 
                                 const Color(0xFF22C55E), 
                                 onConcluir
                               ),
@@ -159,9 +185,9 @@ class AgendaCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
         status.toUpperCase(),
