@@ -2,13 +2,15 @@
 # Utilitários de autenticação JWT
 
 import jwt
+import os
 from functools import wraps
 from flask import request, jsonify
 
-SECRET_KEY = 'dev-secret-key-barbearia-2026'
+def _get_secret_key():
+    return os.environ.get('SECRET_KEY') or 'dev-secret-key-barbearia-2026'
 
 def login_required(f):
-    """Decorator que verifica se o token JWT é válido."""
+    """Decorator que verifica se o token JWT é válido e passa o usuário."""
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
@@ -21,7 +23,7 @@ def login_required(f):
             return jsonify({'error': 'Token não fornecido'}), 401
 
         try:
-            data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            data = jwt.decode(token, _get_secret_key(), algorithms=['HS256'])
             request.user_id = data['user_id']
             request.username = data['username']
         except jwt.ExpiredSignatureError:
@@ -31,3 +33,6 @@ def login_required(f):
 
         return f(*args, **kwargs)
     return decorated
+
+# Alias para compatibilidade com documentação arquitetural
+token_required = login_required

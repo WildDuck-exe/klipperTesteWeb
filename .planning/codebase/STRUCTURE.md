@@ -1,159 +1,96 @@
-# STRUCTURE
+# STRUCTURE - Project Organization
 
-## Pastas Raiz do Projeto
+## Root Architecture
+
+The **Klipper** workspace is organized into a modular structure separating concerns between backend, frontend, and planning.
 
 ```
-C:/Users/Ian/Desktop/Nova pasta/
-├── barbearia-backend/       # API e Banco de dados Python/Flask
-├── barbearia-frontend/      # Aplicação Cliente Flutter
-├── .planning/               # Documentação e gestão GSD do projeto
-├── .worktrees/              # Worktrees Git para trabalhos isolados
-├── docs/                    # Documentação adicional
-└── [arquivos raiz]          # Configs, READMEs, planos
+D:/IA/Projeto_Klipper/
+├── barbearia-backend/       # Python/Flask API + Web Chat static files
+├── barbearia-frontend/      # Flutter native/web administrator application
+├── .planning/               # GSD Project Management & Intelligence
+├── .worktrees/              # Isolated Git work environments
+├── docs/                    # Active documentation and historical archives
+└── [root files]             # Core mission docs (Klipper, primary rules)
 ```
 
 ---
 
-## Backend (barbearia-backend/)
+## Backend Structure (barbearia-backend/)
 
-### Estrutura de Diretórios
+Modular Flask organization using Blueprints and SQLAlchemy.
 
 ```
 barbearia-backend/
-├── app.py                   # Entry point principal da aplicação Flask
-├── run.py                   # Script de execução (alternativo)
-├── config.py                # Configurações (dev/prod)
-├── requirements.txt         # Dependências Python
-├── init_db.py              # Script de inicialização do banco
-├── init_db_simple.py       # Script simplificado de inicialização
-├── .env                     # Variáveis de ambiente
-├── .env.example            # Template de variáveis
-├── firebase-service-account.json  # Credenciais Firebase
-├── database/
-│   └── barbearia.db         # Banco de dados SQLite
-├── models/                  # Modelos SQLAlchemy
-│   ├── __init__.py
+├── app.py                   # Application factory & entry point
+├── requirements.txt         # Dependency manifest
+├── database/                # SQLite instance storage
+├── models/                  # SQLAlchemy ORM definitions
 │   ├── cliente.py
 │   ├── servico.py
 │   ├── agendamento.py
-│   ├── despesa.py
-│   ├── configuracao.py
-│   ├── push_token.py
-│   └── usuario.py
-├── routes/                  # Blueprints da API
-│   ├── __init__.py
-│   ├── auth.py
-│   ├── clientes.py
-│   ├── servicos.py
-│   ├── agendamentos.py
-│   ├── public.py
-│   ├── configuracao.py
-│   └── despesas.py
-├── utils/                   # Funções utilitárias
-│   ├── auth.py
-│   ├── notifications.py
-│   └── validation.py
-├── static/                  # Arquivos estáticos (chat HTML)
-│   └── chat/
-├── tests/                   # Suite de testes pytest
-└── scratch/                 # Scripts de teste временários
-
+│   └── ...
+├── routes/                  # API endpoints grouped by focus
+│   ├── auth.py              # Login & tokens
+│   ├── public.py            # Public booking endpoints
+│   └── ...
+├── static/                  # Web Chat client
+│   └── chat/                # JS, CSS, HTML for client booking
+├── utils/                   # Shared logic (notificaions, auth)
+└── tests/                   # Pytest suite
 ```
-
-### Ponto de Entrada
-
-- **Principal**: `app.py` - cria a aplicação Flask e registra blueprints
-- **Alternativo**: `run.py` - pode ser usado para executar o servidor
 
 ---
 
-## Frontend (barbearia-frontend/)
+## Frontend Structure (barbearia-frontend/)
 
-### Estrutura de Diretórios
+Standard Flutter production layout.
 
 ```
 barbearia-frontend/
-├── pubspec.yaml             # Configuração do projeto Flutter
-├── pubspec.lock             # Lock de dependências
-├── .env                     # Variáveis de ambiente
-├── .env.example            # Template
-├── README.md               # Documentação do frontend
-├── analysis_options.yaml   # Regras linting
 ├── lib/
-│   ├── main.dart           # Entry point da aplicação Flutter
-│   ├── screens/            # Telas da aplicação
-│   │   ├── home_screen.dart
-│   │   ├── login_screen.dart
-│   │   ├── agendamentos_screen.dart
-│   │   ├── clientes_screen.dart
-│   │   ├── servicos_screen.dart
-│   │   ├── financeiro_screen.dart
-│   │   ├── settings_screen.dart
-│   │   ├── about_screen.dart
-│   │   └── novo_agendamento_screen.dart
-│   ├── services/            # Serviços (API, etc)
-│   │   └── api_service.dart
-│   ├── widgets/            # Componentes reutilizáveis
-│   └── theme/              # Temas visuais
-│       └── app_theme.dart
-├── assets/
-│   └── images/             # Imagens da aplicação
-├── test/                   # Testes Flutter
-├── android/                # Configurações Android
-├── windows/                # Configurações Windows
-├── web/                    # Configurações Web
-└── build/                  # Build outputs
+│   ├── main.dart           # App bootstrap
+│   ├── screens/            # State-managed page widgets
+│   ├── services/            # ApiService logic
+│   ├── theme/              # Klipper design tokens
+│   └── widgets/            # Reusable UI components
+├── assets/                  # Images and fonts
+├── pubspec.yaml             # Flutter metadata
+└── windows/                 # Desktop-specific build configs
 ```
-
-### Telas (screens/)
-
-Cada tela é um arquivo Dart independente que implementa um StatefulWidget completo com:
-- Interface visual (build method)
-- Lógica de negócio (métodos da classe)
-- Gerenciamento de estado local
 
 ---
 
-## Planejamento (.planning/)
+## Intelligence & Planning (.planning/)
+
+Structure for Get Shit Done (GSD) workflow.
 
 ```
 .planning/
-├── PROJECT.md              # Visão geral do projeto
-├── REQUIREMENTS.md         # Requisitos levantados
-├── ROADMAP.md              # Roadmap de fases
-├── STATE.md                # Estado atual do projeto
-├── config.json            # Configurações GSD
-├── codebase/               # Documentação de arquitetura
-│   ├── ARCHITECTURE.md
-│   ├── STRUCTURE.md
-│   ├── CONCERNS.md
-│   ├── CONVENTIONS.md
-│   ├── INTEGRATIONS.md
-│   ├── STACK.md
-│   └── TESTING.md
-└── phases/                # Planos de fases GSD
+├── codebase/               # System documentation (You are here)
+├── milestones/             # [NEW] Archived phase history
+│   └── v1.0-phases/         # Archived legacy phases
+├── phases/                 # Active phase focus
+├── PROJECT.md              # Project constitution
+├── ROADMAP.md              # Phase timeline
+└── STATE.md                # Real-time state tracking
 ```
 
 ---
 
-## Worktrees (.worktrees/)
+## Documentation Archives (docs/)
 
-Contém worktrees Git isolados para trabalho paralelo:
-- `agent-a19b68a4/`
-- `agent-a27e33f0/`
-- etc.
-
-Cada worktree representa uma sessão de trabalho isolada.
+```
+docs/
+├── archive/                 # [NEW] Redundant root files and drafts
+└── superpowers/             # Specialized GSD intelligence
+```
 
 ---
 
-## Arquivos de Configuração Principais
+## Entry Points
 
-| Arquivo | Propósito |
-|---------|-----------|
-| `requirements.txt` | Dependências Python do backend |
-| `pubspec.yaml` | Dependências Flutter do frontend |
-| `.env` | Variáveis de ambiente (credenciais) |
-| `config.py` | Configurações do Flask |
-| `ROADMAP.md` | Fases do projeto |
-| `PROJECT.md` | Visão geral |
+- **Backend Backend**: `app.py`
+- **Admin App**: `lib/main.dart`
+- **Client Chat**: `static/chat/index.html`
+- **Mission Master**: `KLIPPER_EXECUCAO_FASEADA.md`

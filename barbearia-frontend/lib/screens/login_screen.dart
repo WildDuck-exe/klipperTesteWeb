@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import 'home_screen.dart';
+import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,17 +38,13 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
 
-      if (result['success'] == true) {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
-        }
-      } else {
+      if (result['success'] == false) {
         setState(() {
           _errorMessage = result['message'];
         });
       }
+      // Note: Se o login for sucesso, o AuthWrapper em main.dart detectará
+      // a mudança de estado e trocará a tela automaticamente.
     } catch (e) {
       setState(() {
         _errorMessage = 'Erro de conexão: $e';
@@ -77,35 +75,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   final isWeb = screenWidth > 600;
                   final logoSize = isWeb ? 220.0 : 160.0;
                   
-                  return Container(
+                  return SizedBox(
                     width: logoSize,
                     height: logoSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).primaryColor.withOpacity(0.2),
-                          blurRadius: 30,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: ClipOval(
-                      child: Container(
-                        color: Colors.white, // Fundo branco circular para proteger a logo atual
-                        padding: const EdgeInsets.all(8.0),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+                    child: Image.asset(
+                      'assets/images/layout/logo_klipper.png',
+                      fit: BoxFit.contain,
                     ),
                   );
                 },
               ),
               const SizedBox(height: 32),
               const Text(
-                'Ponto do Corte',
+                'Klipper',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -114,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const Text(
-                'Sua barbearia preferida',
+                'Sistema de Gestão para Barbearias',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey,
@@ -188,9 +170,45 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+
+              // Links de recuperação e cadastro
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                      );
+                    },
+                    child: const Text(
+                      'Esqueci minha senha',
+                      style: TextStyle(color: Color(0xFF0D47A1)),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                      );
+                    },
+                    child: const Text(
+                      'Cadastre-se',
+                      style: TextStyle(
+                        color: Color(0xFF0D47A1),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
               const Text(
-                '© 2026 Sistema de Gestão de Barbearia',
+                '© 2026 Klipper - Sistema de Gestão',
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],

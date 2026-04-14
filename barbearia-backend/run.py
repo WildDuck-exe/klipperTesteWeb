@@ -8,8 +8,14 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app
+import migrate_add_email
+import migrate_add_profile_fields
 
 if __name__ == '__main__':
+    # Executa migrações antes de iniciar o servidor
+    migrate_add_email.migrate_add_email()
+    migrate_add_profile_fields.migrate_add_profile_fields()
+
     print("=" * 50)
     print("Barbearia API - Agenda Digital para Barbearia")
     print("=" * 50)

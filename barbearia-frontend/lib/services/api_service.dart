@@ -150,6 +150,62 @@ class DashboardData {
   }
 }
 
+class BarbeariaData {
+  final int? id;
+  final String? nome;
+  final String? telefone;
+  final String? endereco;
+  final String? logoPath;
+
+  BarbeariaData({
+    this.id,
+    this.nome,
+    this.telefone,
+    this.endereco,
+    this.logoPath,
+  });
+
+  factory BarbeariaData.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return BarbeariaData();
+    return BarbeariaData(
+      id: json['id'],
+      nome: json['nome'],
+      telefone: json['telefone'],
+      endereco: json['endereco'],
+      logoPath: json['logo_path'],
+    );
+  }
+}
+
+class ProfileData {
+  final int id;
+  final String username;
+  final String email;
+  final String nomeExibicao;
+  final String telefone;
+  final BarbeariaData? barbearia;
+
+  ProfileData({
+    required this.id,
+    required this.username,
+    required this.email,
+    required this.nomeExibicao,
+    required this.telefone,
+    this.barbearia,
+  });
+
+  factory ProfileData.fromJson(Map<String, dynamic> json) {
+    return ProfileData(
+      id: json['id'],
+      username: json['username'] ?? '',
+      email: json['email'] ?? '',
+      nomeExibicao: json['nome_exibicao'] ?? '',
+      telefone: json['telefone'] ?? '',
+      barbearia: json['barbearia'] != null ? BarbeariaData.fromJson(json['barbearia']) : null,
+    );
+  }
+}
+
 class ApiService extends ChangeNotifier {
   // Use a getter for baseUrl to ensure safe fallback and avoid crash if dotenv fails early
   String get _baseUrl {
@@ -299,6 +355,118 @@ class ApiService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     notifyListeners();
+  }
+
+  /// Faz registro de novo usuário com email
+  Future<Map<String, dynamic>> register(String username, String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': username,
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        _token = data['token'];
+        _isAuthenticated = true;
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', _token!);
+
+        notifyListeners();
+        return {'success': true, 'message': data['message'] ?? 'Cadastro realizado com sucesso'};
+      } else {
+        final data = json.decode(response.body);
+        return {'success': false, 'message': data['error'] ?? 'Erro no cadastro'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erro de conexão: $e'};
+    }
+  }
+
+  // ---- Perfil e Onboarding ----
+
+  bool _isOnboardingDone = false;
+  bool get isOnboardingDone => _isOnboardingDone;
+
+  ProfileData? _profileData;
+  ProfileData? get profileData => _profileData;
+
+  /// Verifica se o onboarding foi completado
+  Future<void> loadOnboardingStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isOnboardingDone = prefs.getBool('onboarding_done') ?? false;
+    notifyListeners();
+  }
+
+  /// Marca o onboarding como concluído
+  Future<void> setOnboardingDone() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_done', true);
+    _isOnboardingDone = true;
+    notifyListeners();
+  }
+
+  /// Busca dados do perfil do usuário logado
+  Future<Map<String, dynamic>> fetchProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/profile'),
+        headers: _authHeaders,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _profileData = ProfileData.fromJson(data);
+        notifyListeners();
+        return {'success': true};
+      } else if (response.statusCode == 401) {
+        await logout();
+        return {'success': false, 'message': 'Sessão expirada'};
+      } else {
+        return {'success': false, 'message': 'Erro ao carregar perfil'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erro de conexão: $e'};
+    }
+  }
+
+  /// Atualiza dados do perfil
+  Future<Map<String, dynamic>> updateProfile({
+    String? nomeExibicao,
+    String? telefone,
+    Map<String, dynamic>? barbearia,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (nomeExibicao != null) body['nome_exibicao'] = nomeExibicao;
+      if (telefone != null) body['telefone'] = telefone;
+      if (barbearia != null) body['barbearia'] = barbearia;
+
+      final response = await http.put(
+        Uri.parse('$_baseUrl/api/profile'),
+        headers: _authHeaders,
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        await fetchProfile();
+        return {'success': true, 'message': 'Perfil atualizado com sucesso'};
+      } else if (response.statusCode == 401) {
+        await logout();
+        return {'success': false, 'message': 'Sessão expirada'};
+      } else {
+        final data = json.decode(response.body);
+        return {'success': false, 'message': data['error'] ?? 'Erro ao atualizar perfil'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erro de conexão: $e'};
+    }
   }
 
   Future<void> fetchDashboard({String period = 'today'}) async {

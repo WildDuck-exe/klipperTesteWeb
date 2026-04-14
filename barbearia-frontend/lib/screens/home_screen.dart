@@ -12,6 +12,7 @@ import 'agendamentos_screen.dart';
 import 'financeiro_screen.dart';
 import 'settings_screen.dart';
 import 'about_screen.dart';
+import 'profile_screen.dart';
 import 'novo_agendamento_screen.dart';
 
 import 'package:flutter/foundation.dart';
@@ -27,6 +28,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -98,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
+      key: _scaffoldKey,
       body: Row(
         children: [
           if (isDesktop) _buildNavigationRail(),
@@ -159,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context) {
             return IconButton(
               icon: const Icon(Icons.menu),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             );
           }
         ),
@@ -167,15 +170,6 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _refreshData,
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
           ),
           const SizedBox(width: 8),
         ],
@@ -195,16 +189,14 @@ class _HomeScreenState extends State<HomeScreen> {
       labelType: NavigationRailLabelType.all,
       leading: Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Image.asset('assets/images/logo.png', width: 40),
+        child: Image.asset('assets/images/layout/logo_klipper.png', width: 40),
       ),
       destinations: const [
         NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Dashboard')),
         NavigationRailDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: Text('Clientes')),
-        NavigationRailDestination(icon: Icon(Icons.cut_outlined), selectedIcon: Icon(Icons.cut), label: Text('Serviços')),
         NavigationRailDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today), label: Text('Agenda')),
+        NavigationRailDestination(icon: Icon(Icons.cut_outlined), selectedIcon: Icon(Icons.cut), label: Text('Serviços')),
         NavigationRailDestination(icon: Icon(Icons.monetization_on_outlined), selectedIcon: Icon(Icons.monetization_on), label: Text('Vendas')),
-        NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Ajustes')),
-        NavigationRailDestination(icon: Icon(Icons.info_outline), selectedIcon: Icon(Icons.info), label: Text('Sobre')),
       ],
     );
   }
@@ -411,30 +403,13 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           DrawerHeader(
             decoration: const BoxDecoration(color: Color(0xFF0F172A)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: Row(
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: Container(
-                      color: Colors.white,
-                      padding: const EdgeInsets.all(4.0),
-                      child: Image.asset('assets/images/logo.png', width: 60, height: 60, fit: BoxFit.contain),
-                    ),
-                  ),
-                ),
+                Image.asset('assets/images/layout/logo_klipper.png', width: 70, height: 70, fit: BoxFit.contain),
                 const SizedBox(width: 16),
                 const Expanded(
-                  child: Text('Ponto do Corte', 
+                  child: Text('Klipper',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -442,25 +417,43 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          _buildDrawerItem(Icons.dashboard, 'Dashboard', 0, () => _handleNavigation(0)),
-          _buildDrawerItem(Icons.people, 'Clientes', 1, () => _handleNavigation(1)),
-          _buildDrawerItem(Icons.cut, 'Serviços', 3, () => _handleNavigation(3)),
-          _buildDrawerItem(Icons.calendar_today, 'Agenda Completa', 2, () => _handleNavigation(2)),
-          _buildDrawerItem(Icons.monetization_on, 'Financeiro', 4, () => _handleNavigation(4)),
+          _buildDrawerItemRoute(Icons.person, 'Meu Perfil', () {
+            Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+          }),
           _buildDrawerItemRoute(Icons.settings, 'Configurações', () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
           }),
-          _buildDrawerItemRoute(Icons.info, 'Sobre', () {
+          _buildDrawerItemRoute(Icons.info, 'Sobre o app', () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutScreen()));
+          }),
+          _buildDrawerItemRoute(Icons.help_outline, 'Ajuda', () {
+            Navigator.pop(context);
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Ajuda'),
+                content: const Text('Funcionalidade em desenvolvimento.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
           }),
           const Spacer(),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text('Sair', style: TextStyle(color: Colors.red)),
-            onTap: () => Provider.of<ApiService>(context, listen: false).logout(),
+            onTap: () {
+              Navigator.pop(context); // Fecha o drawer antes de deslogar
+              Provider.of<ApiService>(context, listen: false).logout();
+            },
           ),
           const SizedBox(height: 20),
         ],

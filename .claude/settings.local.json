@@ -60,7 +60,11 @@
       "Bash(where ngrok:*)",
       "Bash(find D:/IA/Projeto_Klipper/barbearia-frontend -type f -name *.dart)",
       "Bash(grep -n \"AppBar\" D:/IA/Projeto_Klipper/barbearia-frontend/lib/screens/*.dart)",
-      "Bash(grep -A5 \"appBar: AppBar\" D:/IA/Projeto_Klipper/barbearia-frontend/lib/screens/*.dart)"
+      "Bash(grep -A5 \"appBar: AppBar\" D:/IA/Projeto_Klipper/barbearia-frontend/lib/screens/*.dart)",
+      "Bash(dir \"D:\\\\IA\\\\Projeto_Klipper\\\\docs\")",
+      "Bash(find /d/IA/Projeto_Klipper/barbearia-frontend-web-demo -type f -name *.dart -o -name *.yaml -o -name *.html -o -name *.json)",
+      "Bash(find /d/IA/Projeto_Klipper -maxdepth 2 -type d -name *chat* -o -maxdepth 2 -type d -name *web*)",
+      "Bash(find /d/IA/Projeto_Klipper -maxdepth 3 -type f \\\\\\(-name *.html -o -name index.html \\\\\\))"
     ]
   },
   "enabledPlugins": {

@@ -15,7 +15,7 @@ let userData = {
 let lastErrorText = null; // Track last error to prevent duplicate DOM spam
 
 const API_BASE = '/api/public';
-const STORAGE_KEY = 'ponto_do_corte_telefone';
+const STORAGE_KEY = 'klipper_telefone';
 
 // ─── Máscara de telefone brasileiro ────────────────────────────────────────────
 function formatarTelefone(value) {
@@ -76,7 +76,7 @@ async function init() {
     }
 
     addMessage(
-        "Olá! Bem-vindo ao <strong>Ponto do Corte</strong>. 💈<br>Para começarmos, qual é o seu <strong>nome completo</strong>?",
+        "Olá! Bem-vindo ao <strong>Klipper</strong>. 💈<br>Para começarmos, qual é o seu <strong>nome completo</strong>?",
         'system',
         true
     );
@@ -479,7 +479,7 @@ function showSuccessModal(servico, data, hora, ticketId) {
             <h2 style="color:#22C55E;margin:0 0 4px;font-size:22px;">Agendamento Confirmado!</h2>
             <p style="color:#94a3b8;margin:0 0 20px;font-size:14px;">Prepare-se para ficar na régua 💈</p>
             <div class="ticket">
-                <div class="ticket-header">💈 Ponto do Corte</div>
+                <div class="ticket-header">💈 Klipper</div>
                 <div class="ticket-body">
                     <div class="ticket-row">
                         <span class="ticket-label">Serviço</span>

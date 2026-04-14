@@ -5,6 +5,7 @@ from .auth import auth_bp
 from .public import public_bp
 from .configuracao import config_bp
 from .despesas import despesas_bp
+from .profile import profile_bp
 
 def register_blueprints(app):
     """Registra todos os Blueprints no app Flask."""
@@ -15,3 +16,4 @@ def register_blueprints(app):
     app.register_blueprint(public_bp)
     app.register_blueprint(config_bp)
     app.register_blueprint(despesas_bp)
+    app.register_blueprint(profile_bp)

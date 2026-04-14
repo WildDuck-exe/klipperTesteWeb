@@ -14,5 +14,6 @@ from .push_token import PushToken
 from .usuario import Usuario
 from .configuracao import Configuracao
 from .despesa import Despesa
+from .barbearia import Barbearia
 
-__all__ = ['db', 'Cliente', 'Servico', 'Agendamento', 'PushToken', 'Usuario', 'Configuracao', 'Despesa']
+__all__ = ['db', 'Cliente', 'Servico', 'Agendamento', 'PushToken', 'Usuario', 'Configuracao', 'Despesa', 'Barbearia']

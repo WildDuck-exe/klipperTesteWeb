@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Paleta Premium - Ponto do Corte
+  // Paleta Premium - Klipper
   static const Color primaryNavy = Color(0xFF0F172A); // Deep Navy
   static const Color primaryRed = Color(0xFFDC2626);  // Vibrant Crimson
   static const Color accentBlue = Color(0xFF3B82F6);  // Electric Blue

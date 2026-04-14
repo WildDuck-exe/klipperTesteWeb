@@ -65,9 +65,9 @@ def add_default_config():
 def add_sample_data():
     """Adiciona dados de exemplo para testes."""
     
-    # 1. Usuário Admin (Barbeiro)
     admin = Usuario(
         username="admin", 
+        email="admin@klipper.com",
         senha_hash=generate_password_hash("123456")
     )
     db.session.add(admin)

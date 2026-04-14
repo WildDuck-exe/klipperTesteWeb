@@ -1,104 +1,67 @@
-# ARCHITECTURE
+# ARCHITECTURE - Systems Overview
 
-## Overview
+## Design Philosophy
 
-Sistema no padrão **Monolito API First + Single Page App/Native App**. Arquitetura em camadas com separação clara de responsabilidades entre backend (Python/Flask) e frontend (Flutter).
-
----
-
-## Backend (Python/Flask)
-
-### Camadas Arquiteturais
-
-O backend segue um design de **camadas simples mas desacoplado**:
-
-1. **`models/`** - Camada de Dados
-   - SQLAlchemy ORM para mapeamento objeto-relacional
-   - Modelos: Cliente, Servico, Agendamento, Despesa, Configuracao, PushToken, Usuario
-   - Gerenciamento de banco SQLite em `database/barbearia.db`
-
-2. **`routes/`** - Camada de Controle/Views da API
-   - Blueprints REST para cada domínio: auth, clientes, servicos, agendamentos, public, configuracao, despesas
-   - Endpoints padronizados com prefixo `/api`
-   - Servidor de arquivos estáticos para chat em `/chat/`
-
-3. **`utils/`** - Camada Cross-cutting
-   - Auth: tratamento de tokens JWT
-   - Notifications: envio via Firebase Cloud Messaging
-   - Validation: validação de dados de entrada
-
-### Stack Técnico Backend
-
-- **Framework**: Flask 2.3.3
-- **ORM**: Flask-SQLAlchemy 3.1.1 + SQLAlchemy 2.0.36
-- **Auth**: PyJWT 2.8.0 para tokens de autenticação
-- **CORS**: Flask-CORS 4.0.0
-- **Push**: firebase-admin 6.5.0 para notificações
-- **Config**: python-dotenv 1.0.0 para variáveis de ambiente
+**Klipper** follows an **API-First, Hybrid-Client architecture**. The system is designed to be a "Triad" that balances administrative control with client accessibility.
 
 ---
 
-## Frontend (Flutter)
+## 1. The Core: Backend (Python/Flask)
 
-### Padrão Arquitetural
+A modular, stateless REST API serving three distinct purposes:
+- **Admin API**: Secure endpoints for management tasks (Customers, Schedules, Finance).
+- **Public API**: Low-friction endpoints for the Web Chat client.
+- **Static Host**: Serving the lightweight Web Chat interface.
 
-O frontend adota o padrão **Provider + Stateful Screens**:
-
-1. **`screens/`** - Widgets estataiscreens.com estado de negócio
-   - Cada tela é um StatefulWidget completo com lógica de negócio incorporada
-   - Telas: HomeScreen, AgendamentosScreen, ClientesScreen, ServicosScreen, FinanceiroScreen, SettingsScreen, LoginScreen, AboutScreen
-
-2. **`services/`** - Consumidores HTTP
-   - ApiService centraliza todas as chamadas REST
-   - Gerencia tokens de autenticação (SharedPreferences)
-   - Modelo de dados (Cliente, Servico, Agendamento) integrado no serviço
-
-3. **`widgets/`** - Componentização reutilizável
-   - Componentes de UI compartilhados entre telas
-
-### Stack Técnico Frontend
-
-- **Framework**: Flutter 3.x (SDK >=3.0.0)
-- **State Management**: Provider 6.1.1
-- **HTTP**: http 1.1.0
-- **Persistence**: shared_preferences 2.2.2
-- **Push**: firebase_core 3.6.0 + firebase_messaging 15.1.3
-- **UI**: google_fonts 6.1.0, animations 2.0.11, flutter_spinkit 5.2.0
+### Layers
+- **ORM (SQLAlchemy)**: High-level data abstraction.
+- **Service Layer (Blueprints)**: Domain-specific logic separation (Auth, Public, Admin).
+- **Notification Manager**: Fire-and-forget orchestration of FCM pushes.
 
 ---
 
-## Fluxo de Dados
+## 2. The Pilot: Admin App (Flutter)
 
-```
-[Flutter App] <--HTTP/JSON--> [Flask API] <--SQLAlchemy--> [SQLite DB]
-                                        |
-                                        v
-                                   [Firebase FCM]
-                                   (Push Notifications)
+A cross-platform native application for the business owner.
+- **State Management**: Provider (ChangeNotifier) pattern.
+- **Persistence**: SharedPreferences for secure JWT storage.
+- **Feature Focus**: Real-time push alerts, schedule visualization, and data entry.
+
+---
+
+## 3. The Scout: Web Chat (Client UI)
+
+A zero-barrier web interface for the end customer.
+- **Pattern**: Polling / Event-driven booking.
+- **Interface**: Modern conversational UI (CSS Glassmorphism).
+- **Objective**: High-speed booking with automated data piping to the Backend.
+
+---
+
+## Data Flow Diagram
+
+```mermaid
+graph TD
+    Client[Web Chat Client] -- Booking Request --> API[Flask REST API]
+    Admin[Flutter Admin App] -- Auth/Manage --> API
+    API -- Read/Write --> DB[(SQLite + SQLAlchemy)]
+    API -- Trigger --> Firebase[Firebase Cloud Messaging]
+    Firebase -- Push Alert --> Admin
 ```
 
 ---
 
-## Autenticação
+## Security Architecture
 
-- JWT-based authentication
-- Tokens armazenados no frontend via SharedPreferences
-- Backend valida tokens em rotas protegidas
-- Sistema de login/logout no frontend
-
----
-
-## Padrões de API
-
-- RESTful endpoints com prefixo `/api`
-- Respostas JSON padronizadas
-- CORS configurado para origens cruzadas
-- Versionamento da API em `API_VERSION` (v1.0.0)
+- **Auth Strategy**: JWT (JSON Web Token) with 24h validity.
+- **Route Guarding**: Custom decorators `@token_required` ensure the Admin API remains exclusive.
+- **Data Privacy**: Sensitive credentials (Firebase keys, Secret keys) are managed via Environment Variables (.env) and never committed to source.
 
 ---
 
-## Arquitetura de Notificações
+## Scalability Path
 
-- Firebase Admin SDK para envio de push notifications
-- Push tokens armazenados no banco de dados
-- Suporte multi-plataforma (Android, iOS, Windows)
+By using SQLAlchemy and a decoupled REST architecture, **Klipper** is ready to:
+1. Swap SQLite for PostgreSQL/MySQL without logic changes.
+2. Scale the Web Chat and Admin App independently.
+3. Integrate with payment gateways or external calendars in future milestones.

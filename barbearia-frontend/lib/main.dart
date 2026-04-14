@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'services/api_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'theme/app_theme.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -60,7 +61,7 @@ class BarbeariaApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Ponto do Corte',
+        title: 'Klipper',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
@@ -91,6 +92,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<void> _checkAuth() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     await apiService.loadToken();
+    await apiService.loadOnboardingStatus();
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -107,6 +109,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
 
     final apiService = Provider.of<ApiService>(context);
-    return apiService.isAuthenticated ? const HomeScreen() : const LoginScreen();
+    if (!apiService.isAuthenticated) {
+      return const LoginScreen();
+    }
+    // Usuário logado: verifica se já fez onboarding
+    if (!apiService.isOnboardingDone) {
+      return const OnboardingScreen();
+    }
+    return const HomeScreen();
   }
 }

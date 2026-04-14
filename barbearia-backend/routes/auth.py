@@ -3,7 +3,8 @@
 
 from flask import Blueprint, jsonify, request
 from models import db, Usuario, PushToken
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
+import re
 import jwt
 import datetime
 import os
@@ -41,6 +42,60 @@ def login():
         'username': user.username,
         'message': 'Login realizado com sucesso'
     })
+
+@auth_bp.route('/api/auth/register', methods=['POST'])
+def register():
+    """Endpoint de registro de novo usuário com email obrigatório."""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'Dados obrigatórios'}), 400
+
+    username = data.get('username', '').strip()
+    email = data.get('email', '').strip()
+    password = data.get('password', '')
+
+    # Validação de campos obrigatórios
+    if not username:
+        return jsonify({'error': 'Username é obrigatório'}), 400
+    if not email:
+        return jsonify({'error': 'Email é obrigatório'}), 400
+    if not password:
+        return jsonify({'error': 'Senha é obrigatória'}), 400
+
+    # Validação de formato de email
+    email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    if not re.match(email_pattern, email):
+        return jsonify({'error': 'Formato de email inválido'}), 400
+
+    # Verifica se username já existe
+    if Usuario.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username já está em uso'}), 409
+
+    # Verifica se email já existe
+    if Usuario.query.filter_by(email=email).first():
+        return jsonify({'error': 'Email já está cadastrado'}), 409
+
+    # Cria hash da senha
+    senha_hash = generate_password_hash(password)
+
+    # Cria usuário
+    novo_usuario = Usuario(username=username, email=email, senha_hash=senha_hash)
+    db.session.add(novo_usuario)
+    db.session.commit()
+
+    # Gera token JWT imediatamente (login automático)
+    token = jwt.encode({
+        'user_id': novo_usuario.id,
+        'username': novo_usuario.username,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+    }, _get_secret_key(), algorithm='HS256')
+
+    return jsonify({
+        'token': token,
+        'username': novo_usuario.username,
+        'message': 'Cadastro realizado com sucesso'
+    }), 201
 
 @auth_bp.route('/api/auth/register-token', methods=['POST'])
 def register_token():
