@@ -71,9 +71,28 @@ This document defines the coding standards for **Klipper**. The project is curre
 
 ---
 
-## 6. Target Refactoring Standards
+## 6. Premium UI Strategy
+
+- **Glassmorphism:** Use blurred backgrounds and subtle borders for cards and menus.
+- **Typography:** Prioritize Google Fonts (e.g., *Outfit* or *Inter*).
+- **Micro-animations:** Use the `animations` package for smooth screen transitions and modal entries.
+- **Visual Feedback:** Use `flutter_spinkit` for loading states to maintain a premium feel.
+
+---
+
+## 7. Mocking Standards (Web Demo)
+
+- **Isolated Registry:** All mock data should reside in `lib/services/mock_data.dart`.
+- **Latency Simulation:** Mocks should include a small artificial delay (e.g., 500ms) to simulate network calls for a realistic experience.
+- **Statelessness:** Mocks should reset to a baseline state on app reload to ensure consistent demonstrations.
+
+---
+
+## 8. Target Refactoring Standards
 
 As part of the rebranding missions:
-1. **Logo Assets:** Use `assets/images/logo_klipper.png`.
-2. **Text Displays:** Replace all "Ponto do Corte" hardcoded strings with "Klipper" (or better, use a `AppConstants` class).
-3. **Themes:** Use the primary Klipper palette (Klipper Navy & Crimson).
+1. **Logo Assets:** Use `assets/images/layout/logo_klipper.png`.
+2. **Text Displays:** Replace all "Ponto do Corte" hardcoded strings with "Klipper".
+3. **Themes:** Use the primary Klipper palette:
+    - **Primary:** Navy Blue (`#0A192F`).
+    - **Accent:** Crimson / Gold accents for a premium look.

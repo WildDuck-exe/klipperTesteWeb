@@ -21,5 +21,10 @@
 - [x] **Geração de Docs**: README.md backend e frontend atualizados.
 - [x] **Walkthrough Final**: Script de demonstração criado (`walkthrough-script.md`).
 
+## Marco Extra: Demonstração e Apresentação (Trilha Paralela)
+**Status**: 🟡 Planejado
+
+- [ ] **Fase D1 — Demo Netlify**: Preparar versão web autônoma para deploy.
+
 ---
-*Roadmap revisado em: 12/04/2026.*
+*Roadmap revisado em: 14/04/2026 (Inclusão da Fase D1).*

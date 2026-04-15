@@ -1,4 +1,4 @@
-# Barbearia Backend - Ponto do Corte
+# Barbearia Backend - Klipper
 
 API backend para sistema de agendamento de barbearia desenvolvido em Python/Flask com SQLAlchemy.
 

@@ -38,6 +38,11 @@ The **Klipper** project (formerly *Ponto do Corte*) is a comprehensive barbersho
 - **Provider ^6.1.1** - State management for API services and app logic.
 - **Firebase Core & Messaging (FCM)** - Native integration for push alerts.
 
+### Web Demo (Flutter Web)
+- **Flutter 3.x** - Specialized build for zero-backend presentation.
+- **Animations / Google Fonts** - Enhanced visuals for premium presentation.
+- **Mock Data Layer** - Custom service layer for isolated functionality.
+
 ### Client Interface (Web Chat)
 - **Vanilla JS / CSS / HTML** - Minimalist, high-performance conversational UI.
 - **Design System:** Glassmorphism with a focus on ease of use for mobile/web clients.
@@ -47,7 +52,9 @@ The **Klipper** project (formerly *Ponto do Corte*) is a comprehensive barbersho
 ## Environment & Tooling
 
 - **Environment Management:** `python-dotenv` and `flutter_dotenv`.
-- **Testing:** `pytest` for backend unit and integration testing.
+- **Testing:** `pytest` (Backend) and `flutter_test` (Frontend).
+- **CI/CD / Deployment:** 
+  - **Netlify:** Automated builds and hosting for the Web Demo.
 - **Version Control:** Git, following the **GSD Unified Flow**.
 
 ---
@@ -59,6 +66,7 @@ The **Klipper** project (formerly *Ponto do Corte*) is a comprehensive barbersho
 | Python | 3.14.x | Runtime |
 | Flask | 2.3.3 | Web Framework |
 | SQLAlchemy | 2.0.36 | ORM |
-| Flutter SDK | 3.x | Frontend |
+| Flutter SDK | 3.x | Frontend Core |
 | firebase-admin| 6.5.0 | Server Notifications |
 | PyJWT | 2.8.0 | Auth |
+| Netlify | Managed | Deployment |

@@ -27,6 +27,15 @@ class Cliente {
       dataCadastro: json['data_cadastro'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nome': nome,
+      'telefone': telefone,
+      'data_cadastro': dataCadastro,
+    };
+  }
 }
 
 class Servico {
@@ -58,6 +67,18 @@ class Servico {
       categoria: json['categoria'] ?? 'Geral',
       ativo: json['ativo'] ?? true,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nome': nome,
+      'descricao': descricao,
+      'duracao_minutos': duracaoMinutos,
+      'preco': preco,
+      'categoria': categoria,
+      'ativo': ativo,
+    };
   }
 }
 
@@ -96,6 +117,20 @@ class Agendamento {
       servicoNome: json['servico_nome'] ?? '',
       clienteTelefone: json['cliente_telefone'] ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'cliente_id': clienteId,
+      'servico_id': servicoId,
+      'data_hora': dataHora,
+      'observacoes': observacoes,
+      'status': status,
+      'cliente_nome': clienteNome,
+      'servico_nome': servicoNome,
+      'cliente_telefone': clienteTelefone,
+    };
   }
 }
 
@@ -223,6 +258,10 @@ class ApiService extends ChangeNotifier {
   List<Agendamento> _agendaHoje = [];
 
   bool _isDemoMode = false;
+  bool _isLoading = false;
+  String? _error;
+  String? _token;
+  bool _isAuthenticated = false;
 
   bool get isDemoMode => _isDemoMode;
   List<Cliente> get clientes => _isDemoMode ? MockData.getClientes() : _clientes;
@@ -242,17 +281,90 @@ class ApiService extends ChangeNotifier {
   Map<String, String> _configs = {};
   Map<String, String> get configs => _configs;
 
-  /// Carrega token salvo do dispositivo
+  /// Carrega token salvo do dispositivo e inicializa estado da demo
   Future<void> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('auth_token');
-    _isAuthenticated = _token != null;
     
-    if (_isAuthenticated) {
-      // Tenta registrar o token de push se ja estiver logado
+    // Verifica se ja estava em modo demo
+    _isDemoMode = prefs.getBool('is_demo_mode') ?? false;
+    
+    _token = prefs.getString('auth_token');
+    _isAuthenticated = (_token != null) || _isDemoMode;
+    
+    // Se estiver em modo demo, carrega os dados locais
+    if (_isDemoMode) {
+      await _loadDemoDataLocally();
+    }
+
+    if (_isAuthenticated && !_isDemoMode) {
+      // Tenta registrar o token de push se ja estiver logado (modo real)
       registrarPushToken();
     }
     
+    notifyListeners();
+  }
+
+  /// Salva os dados atuais da demo no SharedPreferences
+  Future<void> _saveDemoDataLocally() async {
+    if (!_isDemoMode) return;
+    final prefs = await SharedPreferences.getInstance();
+    
+    await prefs.setString('demo_clientes', json.encode(_clientes.map((e) => e.toJson()).toList()));
+    await prefs.setString('demo_servicos', json.encode(_servicos.map((e) => e.toJson()).toList()));
+    await prefs.setString('demo_agendamentos', json.encode(_agendamentos.map((e) => e.toJson()).toList()));
+    await prefs.setBool('is_demo_mode', true);
+    debugPrint('Dados da demo persistidos localmente.');
+  }
+
+  /// Carrega os dados da demo do SharedPreferences
+  Future<void> _loadDemoDataLocally() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    final clientesJson = prefs.getString('demo_clientes');
+    if (clientesJson != null) {
+      final List<dynamic> decoded = json.decode(clientesJson);
+      _clientes = decoded.map((e) => Cliente.fromJson(e)).toList();
+    } else {
+      _clientes = MockData.getClientes();
+    }
+
+    final servicosJson = prefs.getString('demo_servicos');
+    if (servicosJson != null) {
+      final List<dynamic> decoded = json.decode(servicosJson);
+      _servicos = decoded.map((e) => Servico.fromJson(e)).toList();
+    } else {
+      _servicos = MockData.getServicos();
+    }
+
+    final agendamentosJson = prefs.getString('demo_agendamentos');
+    if (agendamentosJson != null) {
+      final List<dynamic> decoded = json.decode(agendamentosJson);
+      _agendamentos = decoded.map((e) => Agendamento.fromJson(e)).toList();
+    } else {
+      _agendamentos = MockData.getAgendamentosHoje();
+    }
+    
+    // Agenda de hoje é filtrada dos agendamentos gerais para a demo
+    _agendaHoje = _agendamentos; 
+    
+    debugPrint('Dados da demo carregados do armazenamento local.');
+  }
+
+  /// Limpa todos os dados da demo e restaura o estado original
+  Future<void> resetDemo() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('demo_clientes');
+    await prefs.remove('demo_servicos');
+    await prefs.remove('demo_agendamentos');
+    await prefs.remove('onboarding_done');
+    
+    _clientes = MockData.getClientes();
+    _servicos = MockData.getServicos();
+    _agendamentos = MockData.getAgendamentosHoje();
+    _agendaHoje = _agendamentos;
+    _isOnboardingDone = false;
+    
+    await _saveDemoDataLocally();
     notifyListeners();
   }
 
@@ -497,7 +609,18 @@ class ApiService extends ChangeNotifier {
 
   Future<void> fetchDashboard({String period = 'today'}) async {
     if (_isDemoMode) {
-      _dashboardData = MockData.getDashboard();
+      // O dashboard na demo pode ser baseado nos agendamentos mockados
+      final concluidos = _agendamentos.where((e) => e.status == 'concluido').length;
+      final total = _agendamentos.length;
+      final faturamento = _agendamentos.where((e) => e.status == 'concluido').fold(0.0, (sum, e) => sum + 50.0); // Preço médio mockado
+
+      _dashboardData = DashboardData(
+        totalAgendamentos: total,
+        agendamentosConcluidos: concluidos,
+        faturamentoEstimado: total * 50.0,
+        faturamentoReal: faturamento,
+        period: "Modo Demo",
+      );
       notifyListeners();
       return;
     }
@@ -531,6 +654,7 @@ class ApiService extends ChangeNotifier {
 
   Future<void> fetchClientes() async {
     if (_isDemoMode) {
+      if (_clientes.isEmpty) await _loadDemoDataLocally();
       notifyListeners();
       return;
     }
@@ -563,6 +687,7 @@ class ApiService extends ChangeNotifier {
 
   Future<void> fetchServicos() async {
     if (_isDemoMode) {
+      if (_servicos.isEmpty) await _loadDemoDataLocally();
       notifyListeners();
       return;
     }
@@ -595,6 +720,7 @@ class ApiService extends ChangeNotifier {
 
   Future<void> fetchAgendamentos() async {
     if (_isDemoMode) {
+      if (_agendamentos.isEmpty) await _loadDemoDataLocally();
       notifyListeners();
       return;
     }
@@ -627,6 +753,8 @@ class ApiService extends ChangeNotifier {
 
   Future<void> fetchAgendaHoje() async {
     if (_isDemoMode) {
+      if (_agendamentos.isEmpty) await _loadDemoDataLocally();
+      _agendaHoje = _agendamentos; // Na demo, mostramos todos como "hoje" para facilitar
       notifyListeners();
       return;
     }
@@ -658,6 +786,19 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> criarCliente(String nome, String telefone) async {
+    if (_isDemoMode) {
+      final novoId = _clientes.isEmpty ? 1 : _clientes.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+      final novo = Cliente(
+        id: novoId,
+        nome: nome,
+        telefone: telefone,
+        dataCadastro: DateTime.now().toString().split(' ')[0],
+      );
+      _clientes.add(novo);
+      await _saveDemoDataLocally();
+      notifyListeners();
+      return {'success': true, 'message': 'Cliente Demo criado', 'id': novoId};
+    }
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/clientes'),
@@ -686,6 +827,23 @@ class ApiService extends ChangeNotifier {
     String dataHora,
     String observacoes,
   ) async {
+    if (_isDemoMode) {
+      final novoId = _agendamentos.isEmpty ? 101 : _agendamentos.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+      _agendamentos.add(Agendamento(
+        id: novoId,
+        clienteId: clienteId,
+        servicoId: servicoId,
+        dataHora: dataHora,
+        observacoes: observacoes,
+        status: 'agendado',
+        clienteNome: _clientes.firstWhere((e) => e.id == clienteId, orElse: () => Cliente(id:0, nome:'Anonimo', telefone:'', dataCadastro:'')).nome,
+        servicoNome: _servicos.firstWhere((e) => e.id == servicoId, orElse: () => Servico(id:0, nome:'Servico', descricao:'', duracaoMinutos:30, preco:0, categoria:'', ativo:true)).nome,
+        clienteTelefone: '',
+      ));
+      await _saveDemoDataLocally();
+      notifyListeners();
+      return {'success': true, 'message': 'Agendamento Demo criado', 'id': novoId};
+    }
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/agendamentos'),
@@ -713,6 +871,26 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> concluirAgendamento(int id) async {
+    if (_isDemoMode) {
+      final index = _agendamentos.indexWhere((e) => e.id == id);
+      if (index != -1) {
+        final a = _agendamentos[index];
+        _agendamentos[index] = Agendamento(
+          id: a.id,
+          clienteId: a.clienteId,
+          servicoId: a.servicoId,
+          dataHora: a.dataHora,
+          observacoes: a.observacoes,
+          status: 'concluido',
+          clienteNome: a.clienteNome,
+          servicoNome: a.servicoNome,
+          clienteTelefone: a.clienteTelefone,
+        );
+        await _saveDemoDataLocally();
+        notifyListeners();
+      }
+      return {'success': true, 'message': 'Agendamento concluído (Demo)'};
+    }
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl/api/agendamentos/$id/concluir'),
@@ -732,6 +910,26 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> cancelarAgendamento(int id) async {
+    if (_isDemoMode) {
+      final index = _agendamentos.indexWhere((e) => e.id == id);
+      if (index != -1) {
+        final a = _agendamentos[index];
+        _agendamentos[index] = Agendamento(
+          id: a.id,
+          clienteId: a.clienteId,
+          servicoId: a.servicoId,
+          dataHora: a.dataHora,
+          observacoes: a.observacoes,
+          status: 'cancelado',
+          clienteNome: a.clienteNome,
+          servicoNome: a.servicoNome,
+          clienteTelefone: a.clienteTelefone,
+        );
+        await _saveDemoDataLocally();
+        notifyListeners();
+      }
+      return {'success': true, 'message': 'Agendamento cancelado (Demo)'};
+    }
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl/api/agendamentos/$id/cancelar'),
@@ -751,6 +949,21 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> criarServico(String nome, double preco, int duracao, String descricao, String categoria) async {
+    if (_isDemoMode) {
+      final novoId = _servicos.isEmpty ? 1 : _servicos.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+      _servicos.add(Servico(
+        id: novoId,
+        nome: nome,
+        descricao: descricao,
+        duracaoMinutos: duracao,
+        preco: preco,
+        categoria: categoria,
+        ativo: true,
+      ));
+      await _saveDemoDataLocally();
+      notifyListeners();
+      return {'success': true, 'message': 'Serviço Demo criado'};
+    }
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/servicos'),
@@ -776,6 +989,23 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> updateServico(int id, String nome, double preco, int duracao, String descricao, String categoria) async {
+    if (_isDemoMode) {
+      final index = _servicos.indexWhere((e) => e.id == id);
+      if (index != -1) {
+        _servicos[index] = Servico(
+          id: id,
+          nome: nome,
+          descricao: descricao,
+          duracaoMinutos: duracao,
+          preco: preco,
+          categoria: categoria,
+          ativo: true,
+        );
+        await _saveDemoDataLocally();
+        notifyListeners();
+      }
+      return {'success': true, 'message': 'Serviço atualizado (Demo)'};
+    }
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl/api/servicos/$id'),
@@ -801,6 +1031,10 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<void> fetchDespesas() async {
+    if (_isDemoMode) {
+      notifyListeners();
+      return;
+    }
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -826,6 +1060,9 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> criarDespesa(String descricao, double valor, String data) async {
+    if (_isDemoMode) {
+      return {'success': true, 'message': 'Despesa Demo registrada'};
+    }
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/despesas'),
@@ -849,6 +1086,12 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> deleteServico(int id) async {
+    if (_isDemoMode) {
+      _servicos.removeWhere((e) => e.id == id);
+      await _saveDemoDataLocally();
+      notifyListeners();
+      return {'success': true, 'message': 'Serviço removido (Demo)'};
+    }
     try {
       final response = await http.delete(
         Uri.parse('$_baseUrl/api/servicos/$id'),
@@ -867,6 +1110,11 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> deleteDespesa(int id) async {
+    if (_isDemoMode) {
+      _despesas.removeWhere((e) => e.id == id);
+      notifyListeners();
+      return {'success': true, 'message': 'Despesa removida (Demo)'};
+    }
     try {
       final response = await http.delete(
         Uri.parse('$_baseUrl/api/despesas/$id'),
@@ -885,6 +1133,14 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<void> fetchConfigs() async {
+    if (_isDemoMode) {
+      _configs = {
+        'nome_fantasia': 'Klipper Demo',
+        'cor_primaria': '#0F172A',
+      };
+      notifyListeners();
+      return;
+    }
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/api/config'),
@@ -902,6 +1158,11 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> updateConfigs(Map<String, String> novasConfigs) async {
+    if (_isDemoMode) {
+      _configs.addAll(novasConfigs);
+      notifyListeners();
+      return {'success': true, 'message': 'Configurações atualizadas (Demo)'};
+    }
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/config'),

@@ -38,15 +38,32 @@ A zero-barrier web interface for the end customer.
 
 ---
 
+## 4. The Showcase: Web Demo (Flutter Web)
+
+A zero-backend, high-fidelity presentation version of the Admin App.
+- **Pattern**: Mock-Driven Architecture.
+- **Service Layer**: Replaces `ApiService` with `MockDataService` to demonstrate functionality without a live server.
+- **Deployment**: Integrated with Netlify for CI/CD and globally distributed hosting.
+
+---
+
 ## Data Flow Diagram
 
 ```mermaid
 graph TD
-    Client[Web Chat Client] -- Booking Request --> API[Flask REST API]
-    Admin[Flutter Admin App] -- Auth/Manage --> API
-    API -- Read/Write --> DB[(SQLite + SQLAlchemy)]
-    API -- Trigger --> Firebase[Firebase Cloud Messaging]
-    Firebase -- Push Alert --> Admin
+    subgraph Production
+        Client[Web Chat Client] -- Booking Request --> API[Flask REST API]
+        Admin[Flutter Admin App] -- Auth/Manage --> API
+        API -- Read/Write --> DB[(SQLite + SQLAlchemy)]
+        API -- Trigger --> Firebase[Firebase Cloud Messaging]
+        Firebase -- Push Alert --> Admin
+    end
+
+    subgraph Demonstration
+        WebDemo[Web Demo Client] -- Action --> Mock[Mock Data Layer]
+        Mock -- Response --> WebDemo
+        Netlify[Netlify CI/CD] -- Deploy --> WebDemo
+    end
 ```
 
 ---

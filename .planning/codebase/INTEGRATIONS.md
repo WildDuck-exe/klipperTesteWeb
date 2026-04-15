@@ -57,13 +57,42 @@ A lightweight, dynamic interface that interacts with the public API routes.
 
 ---
 
-## Technical Dependencies
+## Netlify Integration (Web Demo Hosting)
+
+### Role
+Providing an automated CI/CD pipeline for the **Klipper Web Demo**.
+
+### Components
+- **Deployment Hook:** Triggered on every push to the `main` branch.
+- **Config (netlify.toml):** 
+  ```toml
+  [build]
+    publish = "build/web"
+    command = "flutter build web --release"
+  ```
+- **Status:** 🟢 Operational. Connected to the repository for continuous delivery.
+
+---
+
+## Mock Data Integration (Web Demo)
+
+### Role
+Decoupling the frontend from the backend for presentation and testing purposes.
+
+### Components
+- **Mock Service:** `lib/services/mock_data.dart` provides static data for Customers, Services, and Appointments.
+- **Provider Injection:** The app conditionally uses the Mock Data layer if it detects a "demo" environment flag.
+
+---
+
+## Technical Dependencies (Consolidated)
 
 ### Backend (Python 3.14)
 - `Flask`, `SQLAlchemy`, `firebase-admin`, `PyJWT`.
 
 ### Frontend (Flutter 3.x)
 - `provider`, `http`, `firebase_messaging`, `intl`.
+- **Web Demo specific:** `animations`, `google_fonts`, `flutter_spinkit`.
 
 ---
 
@@ -72,7 +101,9 @@ A lightweight, dynamic interface that interacts with the public API routes.
 | Service | Status | Risk Level |
 | :--- | :--- | :--- |
 | Core API | 🟢 Operational | Low |
+| Netlify CI/CD | 🟢 Operational | Low |
 | DB Integrity | 🟢 Operational | Low |
 | FCM (Mobile) | 🟢 Operational | Low |
 | FCM (Windows) | 🟡 Experimental | High |
 | Web Chat Sync | 🟢 Operational | Low |
+| Web Demo Mocks | 🟢 Operational | Low |

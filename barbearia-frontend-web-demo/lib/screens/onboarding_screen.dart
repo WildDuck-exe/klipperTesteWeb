@@ -81,24 +81,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 550),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.store_outlined,
                     size: 64,
-                    color: Color(0xFF0D47A1),
+                    color: Theme.of(context).primaryColor,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Complete seu perfil',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0D47A1),
+                      color: Theme.of(context).primaryColor,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -109,18 +111,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
-
+  
                   // Seção: Dados Pessoais
-                  const Text(
+                  Text(
                     'Seus dados',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0D47A1),
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                   const SizedBox(height: 12),
-
+  
                   TextFormField(
                     controller: _nomeExibicaoController,
                     decoration: InputDecoration(
@@ -135,7 +137,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Obrigatório' : null,
                   ),
                   const SizedBox(height: 12),
-
+  
                   TextFormField(
                     controller: _telefoneController,
                     keyboardType: TextInputType.phone,
@@ -150,23 +152,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 24),
-
+  
                   // Seção: Dados da Barbearia
-                  const Text(
+                  Text(
                     'Dados da barbearia',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0D47A1),
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                   const SizedBox(height: 12),
-
+  
                   TextFormField(
                     controller: _nomeBarbeariaController,
                     decoration: InputDecoration(
                       labelText: 'Nome da barbearia',
-                      hintText: 'Ex: Ponto do Corte',
+                      hintText: 'Ex: Klipper',
                       prefixIcon: const Icon(Icons.content_cut_outlined),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
@@ -176,7 +178,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Obrigatório' : null,
                   ),
                   const SizedBox(height: 12),
-
+  
                   TextFormField(
                     controller: _telefoneBarbeariaController,
                     keyboardType: TextInputType.phone,
@@ -191,7 +193,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 12),
-
+  
                   TextFormField(
                     controller: _enderecoController,
                     decoration: InputDecoration(
@@ -206,7 +208,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onFieldSubmitted: (_) => _completeOnboarding(),
                   ),
                   const SizedBox(height: 24),
-
+  
                   if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
@@ -216,13 +218,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-
+  
                   SizedBox(
                     height: 54,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _completeOnboarding,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0D47A1),
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -240,6 +242,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ],
               ),
             ),
+          ),
           ),
         ),
       ),

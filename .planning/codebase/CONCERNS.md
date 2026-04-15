@@ -3,9 +3,9 @@
 ## 1. Critical Branding Debt (Highest Priority)
 
 The core mission currently is transitioning from **Ponto do Corte** to **Klipper**.
-- **Issue:** 90% of the codebase, including folder names (`barbearia-backend`), databases (`barbearia.db`), and source code strings, still use the legacy branding.
-- **Risk:** Creating a fragmented user experience where the UI says "Klipper" but errors or notifications say "Ponto do Corte".
-- **Action:** Scheduled rebranding phases are documented in `KLIPPER_EXECUCAO_FASEADA.md`.
+- **Issue:** Approximately 70% of the codebase (down from 90%) still uses legacy naming. Folder names (`barbearia-frontend`) and backend paths remain legacy.
+- **Risk:** Brand fragmentation and maintenance overhead when syncing logic between the main app and the Web Demo.
+- **Action:** Continuous string replacement and modular service implementation to isolate branding tokens.
 
 ---
 
@@ -45,6 +45,11 @@ The core mission currently is transitioning from **Ponto do Corte** to **Klipper
 - **Migrations:** No Alembic/DB migration system. Schema changes currently require manual recreation.
 - **Linting:** No automated linting checks (flake8/black) enforced in CI/GSD.
 
+### Cross-Frontend Logic Sync (Web Demo vs. Admin App)
+- **Issue:** Changes in the main `barbearia-frontend` screens must be manually ported to `barbearia-frontend-web-demo` as they share no common UI library yet.
+- **Risk:** The Demo version becoming outdated or misrepresenting the actual product's current look and feel.
+- **Action:** Future plan to extract a common `klipper_ui_core` package.
+
 ---
 
 ## 5. Priority Matrix for Upcoming Phases
@@ -54,5 +59,6 @@ The core mission currently is transitioning from **Ponto do Corte** to **Klipper
 | **Branding Inconsistency** | Brand | 🔴 Critical |
 | **FCM Windows Display** | Feature | 🔴 Critical |
 | **Double-Booking Prevention** | Logic | 🟡 High |
-| **JWT Secret Rotation** | Security | 🟡 High |
+| **Frontend Logic Sync** | Maintenance| 🟡 High |
+| **JWT Secret Rotation** | Security | 🟢 Medium |
 | **DB Migration System** | Infra | 🟢 Medium |

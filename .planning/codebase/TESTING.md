@@ -31,7 +31,16 @@ Quality assurance for **Klipper** combines automated unit tests (Backend) with m
 
 ---
 
-## Client Interface (Web Chat)
+## Demonstration Layer (Web Demo)
+
+### Strategy
+- **Framework:** `flutter_test`.
+- **Focus:** User Flow verification and Mock Data consistency.
+- **Verification:** Automated tests verify that the UI reacts correctly to `MockDataService` responses without a backend connection.
+
+### Status
+- **Widget Tests:** 🟡 Basic coverage for layout and mock data mapping.
+- **UX Validation:** 🟢 High. Manually verified through Netlify staging.
 
 ### Verification Method
 - **Manual Walkthrough:** Verification of the conversational flow using real Slot data.

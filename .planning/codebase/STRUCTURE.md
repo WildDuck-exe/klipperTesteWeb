@@ -7,7 +7,8 @@ The **Klipper** workspace is organized into a modular structure separating conce
 ```
 D:/IA/Projeto_Klipper/
 ├── barbearia-backend/       # Python/Flask API + Web Chat static files
-├── barbearia-frontend/      # Flutter native/web administrator application
+├── barbearia-frontend/      # Flutter native/web administrator application (Windows Focus)
+├── barbearia-frontend-web-demo/ # [NEW] Flutter Web project for Netlify demo
 ├── .planning/               # GSD Project Management & Intelligence
 ├── .worktrees/              # Isolated Git work environments
 ├── docs/                    # Active documentation and historical archives
@@ -57,6 +58,25 @@ barbearia-frontend/
 ├── assets/                  # Images and fonts
 ├── pubspec.yaml             # Flutter metadata
 └── windows/                 # Desktop-specific build configs
+```
+
+---
+
+## Web Demo Structure (barbearia-frontend-web-demo/)
+
+Specialized demo version with mock data integration.
+
+```
+barbearia-frontend-web-demo/
+├── lib/
+│   ├── main.dart           # Web-optimized bootstrap
+│   ├── services/
+│   │   └── mock_data.dart   # [NEW] Mock service layer for demonstration
+│   ├── screens/            # UI mirrored from main frontend
+│   └── widgets/            # UI components
+├── web/                     # Web-specific entry points (index.html)
+├── netlify.toml             # [NEW] Netlify deployment config
+└── pubspec.yaml             # Web-specific dependencies
 ```
 
 ---

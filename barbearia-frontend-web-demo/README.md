@@ -1,4 +1,4 @@
-# Barbearia Frontend - Ponto do Corte
+# Barbearia Frontend - Klipper
 
 Aplicativo Flutter para gerenciamento de barbearia com agendamento digital e notificações push.
 

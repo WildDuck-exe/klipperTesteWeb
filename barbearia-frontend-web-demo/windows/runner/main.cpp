@@ -27,7 +27,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(400, 10);
   Win32Window::Size size(400, 750);
-  if (!window.Create(L"Ponto do Corte", origin, size)) {
+  if (!window.Create(L"Klipper", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

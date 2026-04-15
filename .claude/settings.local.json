@@ -64,7 +64,9 @@
       "Bash(dir \"D:\\\\IA\\\\Projeto_Klipper\\\\docs\")",
       "Bash(find /d/IA/Projeto_Klipper/barbearia-frontend-web-demo -type f -name *.dart -o -name *.yaml -o -name *.html -o -name *.json)",
       "Bash(find /d/IA/Projeto_Klipper -maxdepth 2 -type d -name *chat* -o -maxdepth 2 -type d -name *web*)",
-      "Bash(find /d/IA/Projeto_Klipper -maxdepth 3 -type f \\\\\\(-name *.html -o -name index.html \\\\\\))"
+      "Bash(find /d/IA/Projeto_Klipper -maxdepth 3 -type f \\\\\\(-name *.html -o -name index.html \\\\\\))",
+      "Skill(gsd-execute-phase)",
+      "Bash(find D:/IA/Projeto_Klipper -name *KLIPPER* -o -name *FASEADA*)"
     ]
   },
   "enabledPlugins": {

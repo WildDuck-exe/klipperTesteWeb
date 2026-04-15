@@ -18,6 +18,8 @@ import 'novo_agendamento_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,10 +35,26 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _checkInitialRoute();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
       _setupRealtimeUpdate();
     });
+  }
+
+  void _checkInitialRoute() {
+    final path = Uri.base.path;
+    if (path.contains('/clientes')) {
+      _selectedIndex = 1;
+    } else if (path.contains('/agendamentos')) {
+      _selectedIndex = 2;
+    } else if (path.contains('/servicos')) {
+      _selectedIndex = 3;
+    } else if (path.contains('/financeiro')) {
+      _selectedIndex = 4;
+    } else {
+      _selectedIndex = 0;
+    }
   }
 
   void _setupRealtimeUpdate() {
@@ -95,6 +113,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _selectedPeriod = 'today';
 
+  void _onTabSelected(int index) {
+    if (_selectedIndex == index) return;
+    HapticFeedback.lightImpact();
+    setState(() => _selectedIndex = index);
+    
+    if (kIsWeb) {
+      final paths = ['/home', '/clientes', '/agendamentos', '/servicos', '/financeiro'];
+      html.window.history.pushState(null, 'Klipper', paths[index]);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 900;
@@ -118,12 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: MagicBottomNav(
+      bottomNavigationBar: isDesktop ? null : MagicBottomNav(
         currentIndex: _selectedIndex,
-        onTap: (index) {
-          HapticFeedback.lightImpact();
-          setState(() => _selectedIndex = index);
-        },
+        onTap: _onTabSelected,
       ),
       floatingActionButton: [0, 2, 4].contains(_selectedIndex) ? FloatingActionButton(
         onPressed: () {
@@ -142,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
         },
-        backgroundColor: _selectedIndex == 4 ? Colors.redAccent : const Color(0xFF0D47A1),
+        backgroundColor: _selectedIndex == 4 ? Colors.redAccent : Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         heroTag: 'home_fab',
         child: Icon(_selectedIndex == 4 ? Icons.remove : Icons.add),
@@ -190,10 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNavigationRail() {
     return NavigationRail(
       selectedIndex: _selectedIndex,
-      onDestinationSelected: (int index) {
-        setState(() => _selectedIndex = index);
-        _handleNavigation(index);
-      },
+      onDestinationSelected: _onTabSelected,
       backgroundColor: Theme.of(context).colorScheme.surface,
       labelType: NavigationRailLabelType.all,
       leading: Padding(
@@ -208,11 +231,6 @@ class _HomeScreenState extends State<HomeScreen> {
         NavigationRailDestination(icon: Icon(Icons.monetization_on_outlined), selectedIcon: Icon(Icons.monetization_on), label: Text('Vendas')),
       ],
     );
-  }
-
-  void _handleNavigation(int index) {
-    HapticFeedback.lightImpact();
-    setState(() => _selectedIndex = index);
   }
 
   Widget _buildMainContent() {
@@ -411,15 +429,28 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF0F172A)),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: Row(
               children: [
-                Image.asset('assets/images/layout/logo_klipper.png', width: 70, height: 70, fit: BoxFit.contain),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Image.asset('assets/images/layout/logo_klipper.png', width: 60, height: 60, fit: BoxFit.contain),
+                ),
                 const SizedBox(width: 16),
                 const Expanded(
                   child: Text('Klipper', 
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -528,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Despesa criada!')));
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, foregroundColor: Colors.white),
               child: const Text('Salvar Despesa'),
             ),
           ),

@@ -99,7 +99,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -113,13 +115,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             width: 80,
                             height: 80,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0D47A1).withValues(alpha: 0.1),
+                              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.person,
                               size: 40,
-                              color: Color(0xFF0D47A1),
+                              color: Theme.of(context).primaryColor,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -136,18 +138,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 32),
-
+  
                     // Seção: Dados pessoais
-                    const Text(
+                    Text(
                       'Dados pessoais',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0D47A1),
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                     const SizedBox(height: 12),
-
+  
                     TextFormField(
                       controller: _nomeExibicaoController,
                       decoration: InputDecoration(
@@ -159,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-
+  
                     TextFormField(
                       controller: _telefoneController,
                       keyboardType: TextInputType.phone,
@@ -172,18 +174,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
+  
                     // Seção: Dados da barbearia
-                    const Text(
+                    Text(
                       'Dados da barbearia',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0D47A1),
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                     const SizedBox(height: 12),
-
+  
                     TextFormField(
                       controller: _nomeBarbeariaController,
                       decoration: InputDecoration(
@@ -196,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Obrigatório' : null,
                     ),
                     const SizedBox(height: 12),
-
+  
                     TextFormField(
                       controller: _telefoneBarbeariaController,
                       keyboardType: TextInputType.phone,
@@ -209,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-
+  
                     TextFormField(
                       controller: _enderecoController,
                       decoration: InputDecoration(
@@ -221,7 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
+  
                     // Área de logo (placeholder)
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -230,11 +232,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.grey.shade300),
                       ),
-                      child: Column(
+                      child: const Column(
                         children: [
-                          const Icon(Icons.image_outlined, size: 48, color: Colors.grey),
-                          const SizedBox(height: 8),
-                          const Text(
+                          Icon(Icons.image_outlined, size: 48, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text(
                             'Logo da barbearia',
                             style: TextStyle(
                               fontSize: 14,
@@ -242,26 +244,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color: Colors.grey,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Em breve',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          SizedBox(height: 4),
+                          Text(
+                            'Personalização disponível na versão oficial',
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
                           ),
-                          const SizedBox(height: 8),
-                          OutlinedButton.icon(
-                            onPressed: null,
-                            icon: const Icon(Icons.upload_file),
-                            label: const Text('Selecionar logo'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.grey,
-                              side: const BorderSide(color: Colors.grey),
-                            ),
-                          ),
+                          SizedBox(height: 8),
                         ],
                       ),
                     ),
                     const SizedBox(height: 24),
-
+  
                     if (_errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
@@ -271,13 +264,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           textAlign: TextAlign.center,
                         ),
                       ),
-
+  
                     SizedBox(
                       height: 54,
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _saveProfile,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D47A1),
+                          backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -291,10 +284,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    
+                    if (Provider.of<ApiService>(context, listen: false).isDemoMode)
+                      SizedBox(
+                        height: 54,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _confirmResetDemo(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text(
+                            'Resetar Demo',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
             ),
+          ),
+            ),
+    );
+  }
+
+  void _confirmResetDemo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Resetar Demo?'),
+        content: const Text('Isso irá apagar todos os seus dados locais e restaurar o estado inicial da apresentação.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await Provider.of<ApiService>(context, listen: false).resetDemo();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Demo resetada com sucesso!')),
+                );
+                _loadProfile();
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Resetar'),
+          ),
+        ],
+      ),
     );
   }
 }

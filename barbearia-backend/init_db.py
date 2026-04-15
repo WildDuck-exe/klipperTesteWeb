@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # init_db.py
-# Script de inicialização do banco de dados SQLAlchemy para a Ponto do Corte
+# Script de inicialização do banco de dados SQLAlchemy para a Klipper
 
 import os
 import sys
@@ -15,7 +15,7 @@ from models import db, Cliente, Servico, Agendamento, Usuario, PushToken, Config
 
 def init_database():
     """Inicializa o banco de dados e cria todas as tabelas."""
-    print("Inicializando banco de dados Ponto do Corte...")
+    print("Inicializando banco de dados Klipper...")
 
     with app.app_context():
         # Cria o diretório database se não existir
@@ -49,7 +49,7 @@ def add_default_config():
         ('dias_trabalho', '1,2,3,4,5,6', 'Dias da semana de expediente (0=Dom, 1=Seg...)'),
         ('pausa_inicio', '12:00', 'Horário de início do almoço/pausa'),
         ('pausa_fim', '13:00', 'Horário de término do almoço/pausa'),
-        ('whatsapp_mensagem', 'Olá {nome}, tudo bem? Sou da barbearia Ponto do Corte. Confirmando seu agendamento de {servico} para {data_hora}. Podemos confirmar?', 'Mensagem Recepção'),
+        ('whatsapp_mensagem', 'Olá {nome}, tudo bem? Sou da barbearia Klipper. Confirmando seu agendamento de {servico} para {data_hora}. Podemos confirmar?', 'Mensagem Recepção'),
         ('whatsapp_mensagem_pausa', 'Olá, estamos em horário de almoço no momento. Retornaremos em breve!', 'Mensagem Pausa'),
         ('whatsapp_mensagem_fechado', 'Olá, a barbearia encontra-se fechada no momento. Nosso horário de atendimento é...', 'Mensagem Fechado'),
         ('whatsapp_mensagem_cancelamento', 'Olá {nome}, infelizmente precisaremos desmarcar ou remarcar seu horário de {servico} para {data_hora}. Gostaria de escolher um novo horário?', 'Mensagem Cancelamento')

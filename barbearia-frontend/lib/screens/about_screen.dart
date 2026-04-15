@@ -150,7 +150,7 @@ class AboutScreen extends StatelessWidget {
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Obrigado pela Appreciation! 💈'),
+                      content: Text('Obrigado pela preferência! 💈'),
                       backgroundColor: Color(0xFF0D47A1),
                     ),
                   );
