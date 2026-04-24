@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klipper | Chat de Agendamento</title>
+    <link rel="stylesheet" href="chat.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+</head>
+<body>
+    <div id="chat-container">
+        <header>
+            <div class="logo-container">
+                <img src="assets/logo.png" alt="Klipper Logo" class="logo-img">
+                <h1>Klipper</h1>
+            </div>
+            <p>Sistema de Gestão para Barbearias</p>
+        </header>
+
+        <main id="chat-window">
+            <!-- As mensagens serão inseridas dinamicamente pelo chat.js -->
+        </main>
+
+        <footer id="chat-input-area">
+            <div class="input-container">
+                <input type="text" id="user-input" placeholder="Digite aqui..." autocomplete="off">
+                <button id="send-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                    </svg>
+                </button>
+            </div>
+        </footer>
+
+        <!-- Templates para componentes dinâmicos -->
+        <div id="templates" style="display: none;">
+            <!-- Grid de serviços -->
+            <div class="services-grid"></div>
+            <!-- Grid de horários -->
+            <div class="horarios-grid"></div>
+        </div>
+    </div>
+
+    <script src="chat.js"></script>
+</body>
+</html>
