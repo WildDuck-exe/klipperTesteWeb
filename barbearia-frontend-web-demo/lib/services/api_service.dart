@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'mock_data.dart';
 
 class Cliente {
@@ -264,10 +265,10 @@ class ApiService extends ChangeNotifier {
   bool _isAuthenticated = false;
 
   bool get isDemoMode => _isDemoMode;
-  List<Cliente> get clientes => _isDemoMode ? MockData.getClientes() : _clientes;
-  List<Servico> get servicos => _isDemoMode ? MockData.getServicos() : _servicos;
-  List<Agendamento> get agendamentos => _isDemoMode ? MockData.getAgendamentosHoje() : _agendamentos;
-  List<Agendamento> get agendaHoje => _isDemoMode ? MockData.getAgendamentosHoje() : _agendaHoje;
+  List<Cliente> get clientes => _clientes;
+  List<Servico> get servicos => _servicos;
+  List<Agendamento> get agendamentos => _agendamentos;
+  List<Agendamento> get agendaHoje => _agendaHoje;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isAuthenticated => _isDemoMode ? true : _isAuthenticated;
@@ -608,47 +609,58 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<void> fetchDashboard({String period = 'today'}) async {
-    if (_isDemoMode) {
-      // O dashboard na demo pode ser baseado nos agendamentos mockados
-      final concluidos = _agendamentos.where((e) => e.status == 'concluido').length;
-      final total = _agendamentos.length;
-      final faturamento = _agendamentos.where((e) => e.status == 'concluido').fold(0.0, (sum, e) => sum + 50.0); // Preço médio mockado
+    if (_isDemoMode && _agendaHoje.isEmpty) {
+      _dashboardData = DashboardData(
+        totalAgendamentos: 0,
+        agendamentosConcluidos: 0,
+        faturamentoEstimado: 0,
+        faturamentoReal: 0,
+        period: 'Hoje',
+      );
+      notifyListeners();
+    }
+    
+    try {
+      final supabase = Supabase.instance.client;
+      
+      // Busca estatísticas básicas do Supabase
+      final List<dynamic> agendamentos = await supabase
+          .from('agendamentos')
+          .select('status, servicos(preco)');
+
+      int total = agendamentos.length;
+      int concluidos = agendamentos.where((a) => a['status'] == 'concluido').length;
+      double estimado = 0;
+      double real = 0;
+
+      for (var a in agendamentos) {
+        double preco = (a['servicos']['preco'] ?? 0).toDouble();
+        estimado += preco;
+        if (a['status'] == 'concluido') real += preco;
+      }
 
       _dashboardData = DashboardData(
         totalAgendamentos: total,
         agendamentosConcluidos: concluidos,
-        faturamentoEstimado: total * 50.0,
-        faturamentoReal: faturamento,
-        period: "Modo Demo",
+        faturamentoEstimado: estimado,
+        faturamentoReal: real,
+        period: 'Geral (Supabase)',
       );
+      
       notifyListeners();
-      return;
-    }
-    _isLoading = true;
-    _error = null;
-    _dashboardData = null; // Limpa dados antigos para forçar atualização visual
-    notifyListeners();
-
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/agenda/dashboard?period=$period'),
-        headers: _authHeaders,
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        _dashboardData = DashboardData.fromJson(data);
-      } else if (response.statusCode == 401) {
-        await logout();
-        _error = 'Sessão expirada. Por favor, faça login novamente.';
-      } else {
-        _error = 'Erro ao carregar dashboard: ${response.statusCode}';
-      }
     } catch (e) {
-      _error = 'Erro de conexão: $e';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      debugPrint('Erro ao carregar dashboard do Supabase: $e');
+      // Fallback para demo
+      if (_isDemoMode && _dashboardData == null) {
+        _dashboardData = DashboardData(
+          totalAgendamentos: 12,
+          agendamentosConcluidos: 8,
+          faturamentoEstimado: 450.0,
+          faturamentoReal: 320.0,
+          period: 'Hoje (Demo)',
+        );
+        notifyListeners();
+      }
     }
   }
 
@@ -752,33 +764,46 @@ class ApiService extends ChangeNotifier {
   }
 
   Future<void> fetchAgendaHoje() async {
-    if (_isDemoMode) {
-      if (_agendamentos.isEmpty) await _loadDemoDataLocally();
-      _agendaHoje = _agendamentos; // Na demo, mostramos todos como "hoje" para facilitar
-      notifyListeners();
-      return;
-    }
     _isLoading = true;
-    _error = null;
     notifyListeners();
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/agenda/hoje'),
-        headers: _authHeaders,
-      );
+      final supabase = Supabase.instance.client;
+      
+      // Busca agendamentos com nomes de clientes e serviços
+      final List<dynamic> data = await supabase
+          .from('agendamentos')
+          .select('''
+            *,
+            clientes (nome, telefone),
+            servicos (nome)
+          ''')
+          .order('data_hora', ascending: true);
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        _agendaHoje = data.map((json) => Agendamento.fromJson(json)).toList();
-      } else if (response.statusCode == 401) {
-        await logout();
-        _error = 'Sessão expirada. Por favor, faça login novamente.';
-      } else {
-        _error = 'Erro ao carregar agenda do dia: ${response.statusCode}';
-      }
+      _agendaHoje = data.map((item) {
+        return Agendamento(
+          id: item['id'],
+          clienteId: item['cliente_id'],
+          servicoId: item['servico_id'],
+          dataHora: item['data_hora'],
+          observacoes: item['observacoes'] ?? '',
+          status: item['status'] ?? 'agendado',
+          clienteNome: item['clientes']['nome'] ?? 'Cliente',
+          servicoNome: item['servicos']['nome'] ?? 'Serviço',
+          clienteTelefone: item['clientes']['telefone'] ?? '',
+        );
+      }).toList();
+
+      debugPrint('Agenda carregada do Supabase: ${_agendaHoje.length} itens.');
+      _error = null;
     } catch (e) {
-      _error = 'Erro de conexão: $e';
+      debugPrint('Erro ao buscar agenda no Supabase: $e');
+      _error = 'Erro ao carregar agenda: $e';
+      
+      // Fallback para demo se falhar o Supabase
+      if (_isDemoMode) {
+        _agendaHoje = _agendamentos;
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -1184,5 +1209,57 @@ class ApiService extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  // ---- Supabase Realtime Integration ----
+
+  RealtimeChannel? _agendamentosChannel;
+
+  /// Inicializa o listener de tempo real para novos agendamentos no Supabase
+  void initSupabaseRealtime(Function(String title, String body) onNotification) {
+    debugPrint('Iniciando listener Supabase Realtime...');
+    
+    try {
+      final supabase = Supabase.instance.client;
+      
+      _agendamentosChannel = supabase.channel('public:agendamentos')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'agendamentos',
+          callback: (payload) async {
+            debugPrint('Novo agendamento detectado via Supabase Realtime!');
+            
+            // Busca dados complementares (nome do cliente) para a notificação
+            final clienteId = payload.newRecord['cliente_id'];
+            final clienteData = await supabase
+                .from('clientes')
+                .select('nome')
+                .eq('id', clienteId)
+                .maybeSingle();
+
+            final nomeCliente = clienteData?['nome'] ?? 'Um cliente';
+            
+            onNotification(
+              'Novo Agendamento! 💈',
+              '$nomeCliente acabou de agendar um horário pelo chat.'
+            );
+            
+            // Atualiza a agenda localmente
+            fetchAgendaHoje();
+            fetchDashboard();
+          },
+        ).subscribe();
+        
+      debugPrint('Canal Supabase Realtime assinado com sucesso.');
+    } catch (e) {
+      debugPrint('Erro ao inicializar Supabase Realtime: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _agendamentosChannel?.unsubscribe();
+    super.dispose();
   }
 }

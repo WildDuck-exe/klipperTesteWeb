@@ -14,6 +14,8 @@ import 'theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 class MyCustomScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
@@ -44,11 +46,21 @@ void main() async {
     }
   }
 
-  // DotEnv: Falha silenciosa com fallback
+  // DotEnv: Carrega chaves de API
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
     debugPrint("DotEnv fallback: $e");
+  }
+
+  // Supabase: Central Database & Realtime
+  try {
+    await Supabase.initialize(
+      url: dotenv.get('SUPABASE_URL', fallback: 'YOUR_SUPABASE_URL'),
+      anonKey: dotenv.get('SUPABASE_ANON_KEY', fallback: 'YOUR_SUPABASE_ANON_KEY'),
+    );
+  } catch (e) {
+    debugPrint("Supabase initialization failed: $e");
   }
 
   runApp(const BarbeariaApp());

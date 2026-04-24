@@ -47,30 +47,34 @@ async function init() {
     if (telefoneSalvo) {
         const loader = showTyping();
         try {
-            const res = await fetch(`${API_BASE}/cliente?telefone=${encodeURIComponent(telefoneSalvo)}`);
+            // Using Supabase to find the client
+            const { data: cliente, error } = await _supabase
+                .from('clientes')
+                .select('nome')
+                .eq('telefone', telefoneSalvo)
+                .single();
+
             loader.remove();
 
-            if (res.ok) {
-                const cliente = await res.json();
-                if (cliente.encontrado) {
-                    userData.nome = cliente.nome;
-                    userData.telefone = telefoneSalvo;
+            if (!error && cliente) {
+                userData.nome = cliente.nome;
+                userData.telefone = telefoneSalvo;
 
-                    addMessage(
-                        `Olá de volta, <strong>${cliente.nome}</strong>! 👋 Que bom te ver por aqui.<br><br>` +
-                        `<span style="font-size: 0.9em; opacity: 0.8;">Não é você? ` +
-                        `<button onclick="esqueci()" style="background: none; border: none; text-decoration: underline; cursor: pointer; color: inherit; font-size: inherit;">` +
-                        `Usar outro número</button></span>`,
-                        'system',
-                        true
-                    );
+                addMessage(
+                    `Olá de volta, <strong>${cliente.nome}</strong>! 👋 Que bom te ver por aqui.<br><br>` +
+                    `<span style="font-size: 0.9em; opacity: 0.8;">Não é você? ` +
+                    `<button onclick="esqueci()" style="background: none; border: none; text-decoration: underline; cursor: pointer; color: inherit; font-size: inherit;">` +
+                    `Usar outro número</button></span>`,
+                    'system',
+                    true
+                );
 
-                    state = 'SERVICE';
-                    setTimeout(() => showServices(), 900);
-                    return;
-                }
+                state = 'SERVICE';
+                setTimeout(() => showServices(), 900);
+                return;
             }
         } catch (e) {
+            console.error("Supabase error:", e);
             loader.remove();
         }
     }
@@ -241,11 +245,16 @@ function askPhone() {
 async function showServices() {
     const loader = showTyping();
     try {
-        const response = await fetch(`${API_BASE}/servicos`);
-        const servicos = await response.json();
+        // Fetch services from Supabase
+        const { data: servicos, error } = await _supabase
+            .from('servicos')
+            .select('*')
+            .eq('ativo', true)
+            .order('nome');
+
         loader.remove();
 
-        if (servicos.length === 0) {
+        if (error || !servicos || servicos.length === 0) {
             addMessage("Nenhum serviço disponível no momento. Tente novamente mais tarde.", "system");
             return;
         }
@@ -261,7 +270,7 @@ async function showServices() {
             btn.innerHTML = `
                 <span class="service-name">${s.nome}</span>
                 <span class="service-meta">${s.duracao_minutos} min</span>
-                <span class="service-price">R$ ${s.preco.toFixed(2)}</span>
+                <span class="service-price">R$ ${parseFloat(s.preco).toFixed(2)}</span>
             `;
             btn.onclick = () => selectService(s.id, s.nome);
             optionsDiv.appendChild(btn);
@@ -330,22 +339,64 @@ function handleDateInput() {
 async function showTimes() {
     const loader = showTyping();
     try {
-        const response = await fetch(`${API_BASE}/horarios?data=${userData.data}&servico_id=${userData.servico_id}`);
-        const data = await response.json();
+        // Simple logic for demo: list some hours and check if they are already taken in Supabase
+        const baseTimes = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"];
+        
+        // Fetch existing appointments for the selected date
+        const startOfDay = `${userData.data}T00:00:00`;
+        const endOfDay = `${userData.data}T23:59:59`;
+
+        const { data: taken, error } = await _supabase
+            .from('agendamentos')
+            .select('data_hora')
+            .gte('data_hora', startOfDay)
+            .lte('data_hora', endOfDay)
+            .neq('status', 'cancelado');
+
         loader.remove();
 
-        if (data.disponiveis.length === 0) {
+        if (error) {
+            addMessage("Erro ao carregar horários. Tente novamente.", "system");
+            return;
+        }
+
+        const takenTimes = taken.map(a => {
+            const date = new Date(a.data_hora);
+            return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        });
+
+        // Filter: Remove times already taken AND past times if today
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+
+        const availableTimes = baseTimes.filter(t => {
+            // Check if taken
+            if (takenTimes.includes(t)) return false;
+
+            // Check if past (only if today)
+            if (userData.data === todayStr) {
+                const [h, m] = t.split(':').map(Number);
+                if (h < currentHour) return false;
+                if (h === currentHour && m <= currentMinute) return false;
+            }
+
+            return true;
+        });
+
+        if (availableTimes.length === 0) {
             addMessage("Nenhum horário disponível nesta data. 😔 Por favor, escolha outro dia.", "system");
             setTimeout(() => askDate(), 1500);
             return;
         }
 
-        addMessage(`Temos <strong>${data.disponiveis.length}</strong> horários disponíveis. Qual prefere?`, "system", true);
+        addMessage(`Temos <strong>${availableTimes.length}</strong> horários disponíveis. Qual prefere?`, "system", true);
 
         const grid = document.createElement('div');
         grid.className = 'horarios-grid';
 
-        data.disponiveis.forEach(hora => {
+        availableTimes.forEach(hora => {
             const btn = document.createElement('button');
             btn.className = 'time-chip';
             btn.textContent = hora;
@@ -408,21 +459,40 @@ async function finishBooking() {
 
     const loader = showTyping();
     try {
-        const response = await fetch(`${API_BASE}/agendar`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                nome: userData.nome,
-                telefone: userData.telefone,
-                servico_id: userData.servico_id,
-                data_hora: userData.data_hora
-            })
-        });
+        // 1. Get or Create Client
+        let clienteId;
+        const { data: existingCliente } = await _supabase
+            .from('clientes')
+            .select('id')
+            .eq('telefone', userData.telefone)
+            .single();
 
-        const resData = await response.json();
+        if (existingCliente) {
+            clienteId = existingCliente.id;
+        } else {
+            const { data: newCliente, error: createError } = await _supabase
+                .from('clientes')
+                .insert([{ nome: userData.nome, telefone: userData.telefone }])
+                .select()
+                .single();
+            
+            if (createError) throw createError;
+            clienteId = newCliente.id;
+        }
+
+        // 2. Create Appointment
+        const { error: bookingError } = await _supabase
+            .from('agendamentos')
+            .insert([{
+                cliente_id: clienteId,
+                servico_id: userData.servico_id,
+                data_hora: userData.data_hora,
+                status: 'agendado'
+            }]);
+
         loader.remove();
 
-        if (response.ok) {
+        if (!bookingError) {
             localStorage.setItem(STORAGE_KEY, userData.telefone);
 
             const ticketId = Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -439,13 +509,10 @@ async function finishBooking() {
             `, "system", true);
 
             showSuccessModal(userData.servico_nome, dataFmt, horaFmt, ticketId);
-            addMessage(`O barbeiro já foi notificado. Te esperamos lá! 💈`, "system");
+            addMessage(`O barbeiro já foi notificado em tempo real. Te esperamos lá! 💈`, "system");
 
-        } else if (response.status === 409) {
-            addMessage(`Este horário acabou de ser preenchido. 😔 Por favor, escolha outro.`, "system");
-            setTimeout(() => askDate(), 2000);
         } else {
-            addMessage(`Erro: ${resData.error || 'Não foi possível confirmar. Tente novamente.'}`, "system");
+            addMessage(`Erro ao agendar: ${bookingError.message}`, "system");
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = '✅ Confirmar Agendamento';
@@ -453,7 +520,8 @@ async function finishBooking() {
         }
     } catch (e) {
         loader.remove();
-        addMessage("Erro de conexão. Verifique sua internet.", "system");
+        console.error("Booking error:", e);
+        addMessage("Erro ao processar agendamento. Tente novamente.", "system");
         if (btn) {
             btn.disabled = false;
             btn.textContent = '✅ Confirmar Agendamento';

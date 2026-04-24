@@ -43,7 +43,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _checkInitialRoute() {
-    final path = Uri.base.path;
+    if (!kIsWeb) return;
+    
+    final path = html.window.location.pathname ?? '/';
+    debugPrint('Initial path detected: $path');
+    
     if (path.contains('/clientes')) {
       _selectedIndex = 1;
     } else if (path.contains('/agendamentos')) {
@@ -55,14 +59,25 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       _selectedIndex = 0;
     }
+    
+    if (mounted) setState(() {});
   }
 
   void _setupRealtimeUpdate() {
-    if (kIsWeb) return; // Blindagem total na Web
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    
+    // Supabase Realtime (Funciona em todas as plataformas, incluindo Web)
+    apiService.initSupabaseRealtime((title, body) {
+      if (mounted) {
+        _showNewBookingDialog(title, body);
+      }
+    });
 
-    if (defaultTargetPlatform == TargetPlatform.android || 
-        defaultTargetPlatform == TargetPlatform.iOS || 
-        defaultTargetPlatform == TargetPlatform.windows) {
+    // FCM (Apenas Mobile)
+    if (!kIsWeb && 
+        (defaultTargetPlatform == TargetPlatform.android || 
+         defaultTargetPlatform == TargetPlatform.iOS || 
+         defaultTargetPlatform == TargetPlatform.windows)) {
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         _refreshData();
         if (mounted) {
