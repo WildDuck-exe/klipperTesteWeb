@@ -461,6 +461,18 @@ async function finishBooking() {
             const dataFmt = userData.data.split('-').reverse().join('/');
             const horaFmt = userData.data_hora.split('T')[1].substring(0, 5);
 
+            // Notifica o backend para disparar FCM ao barbeiro
+            const horaFmtFull = horaFmt;
+            fetch(`${BACKEND_URL}/api/public/notificar-agendamento`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cliente_nome:  userData.nome,
+                    servico_nome:  userData.servico_nome,
+                    data_hora_fmt: `${dataFmt} às ${horaFmtFull}`,
+                }),
+            }).catch(err => console.warn('[Push]', err));
+
             addMessage(`
                 <div class="success-animation">
                     <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
