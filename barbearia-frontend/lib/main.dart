@@ -12,6 +12,7 @@ import 'theme/app_theme.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MyCustomScrollBehavior extends MaterialScrollBehavior {
   @override
@@ -23,7 +24,17 @@ class MyCustomScrollBehavior extends MaterialScrollBehavior {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Supabase init
+  try {
+    await Supabase.initialize(
+      url: dotenv.get('SUPABASE_URL', fallback: 'https://ocsykbqshxitgkpxgvzv.supabase.co'),
+      anonKey: dotenv.get('SUPABASE_ANON_KEY', fallback: ''),
+    );
+  } catch (e) {
+    debugPrint("Supabase init skip: $e");
+  }
+
   // Firebase: Apenas mobile
   if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
     try {

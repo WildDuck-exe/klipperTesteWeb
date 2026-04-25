@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Cliente {
   final int id;
@@ -243,6 +244,34 @@ class ApiService extends ChangeNotifier {
   Map<String, String> _configs = {};
   Map<String, String> get configs => _configs;
 
+  // Supabase Realtime channel for live appointments
+  RealtimeChannel? _agendamentosChannel;
+
+  /// Inicia escuta de realtime em agendamentos — chamado após login
+  void iniciarRealtime() {
+    _agendamentosChannel = Supabase.instance.client
+        .channel('agendamentos-changes')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'agendamentos',
+          callback: (payload) {
+            debugPrint('[Realtime] Novo agendamento: ${payload.newRecord}');
+            fetchAgendamentos();
+            notifyListeners();
+          },
+        )
+        .subscribe();
+    debugPrint('[Realtime] Channel subscribed');
+  }
+
+  /// Para escuta de realtime — chamado no logout
+  void pararRealtime() {
+    _agendamentosChannel?.unsubscribe();
+    _agendamentosChannel = null;
+    debugPrint('[Realtime] Channel unsubscribed');
+  }
+
   /// Carrega token salvo do dispositivo
   Future<void> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -336,6 +365,9 @@ class ApiService extends ChangeNotifier {
         // Registra o token de push após login bem sucedido
         await registrarPushToken();
 
+        // Inicia Supabase Realtime para escuta de novos agendamentos
+        iniciarRealtime();
+
         notifyListeners();
         return {'success': true, 'message': 'Login realizado com sucesso'};
       } else {
@@ -349,6 +381,7 @@ class ApiService extends ChangeNotifier {
 
   /// Faz logout e remove token
   Future<void> logout() async {
+    pararRealtime();
     _token = null;
     _isAuthenticated = false;
     _dashboardData = null; // Limpa o dashboard no logout
