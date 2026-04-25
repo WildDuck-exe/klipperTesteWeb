@@ -1,18 +1,25 @@
 # Roadmap: Ponto do Corte (Finalização)
 
-## Marco 1: Auditoria de Segurança e Projeto (Fase Atual)
-**Status**: 🟢 Concluído / Em Verificação
+## Marco 1: Auditoria de Segurança e Projeto
+**Status**: 🟢 Concluído
 
 - [x] Sweep de segurança (FCM keys, .env).
 - [x] Atualização de `.gitignore` e templates `.env.example`.
 - [x] Re-inicialização dos contratos do projeto (GSD Unified Flow).
 
-## Marco 2: Refinamento do Chat e Notificações (Próxima Fase)
-**Status**: 🟡 Planejado
+## Marco 2: Flutter FCM + Supabase Realtime (Em Execução — Fase 2)
+**Status**: 🟡 Em Progresso
 
-- [ ] **Chat UI**: Adicionar feedback visual ao confirmar agendamento.
-- [ ] **FCM Client**: Implementar registro de token no app Flutter (Windows).
-- [ ] **Validação de Conflito**: Reforçar lógica de `public.py` para evitar double-booking.
+- [x] **Chat UI**: Feedback visual ao confirmar agendamento.
+- [x] **FCM Client**: Registro de token + Supabase Realtime no app Flutter.
+- [x] **Validação de Conflito**: Lógica de double-booking em public.py (retorna 409).
+- [ ] **Supabase Schema**: SQL tables + RLS + Realtime (requer execução manual no dashboard).
+
+## Fase 2 Concluída (10/15 tasks)
+- Backend: notifications.py corrigido, endpoints /config e /notificar-agendamento criados
+- Flutter: Supabase Realtime + NotificationService criados
+- Chat: feedback visual + POST /notificar-agendamento após booking
+- Double-booking: 409 returned when conflict detected
 
 ## Marco 3: Compatibilidade e Entrega Acadêmica
 **Status**: 🟢 Concluído
@@ -27,4 +34,4 @@
 - [ ] **Fase D1 — Demo Netlify**: Preparar versão web autônoma para deploy.
 
 ---
-*Roadmap revisado em: 14/04/2026 (Inclusão da Fase D1).*
+*Roadmap revisado em: 25/04/2026 (Fase 2 em execução — Marco 2 atualizado).*
