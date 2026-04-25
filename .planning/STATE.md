@@ -1,20 +1,24 @@
-# Project State: Ponto do Corte
+# Project State: Klipper (Ponto do Corte)
 
 ## Current Milestone (Marco)
-- **Marco 1**: Auditoria de Segurança e Projeto (Finalizado).
+- **Marco 2**: Flutter FCM + Supabase Realtime (Em Execução — Fase 2 concluída, aguardando Supabase Schema manual).
 
 ## Active Task (Tarefa em Foco)
-- Refinamento de Notificações FCM e Chat UI (Transição para Marco 2).
+- Completar Supabase Schema via SQL (push_tokens, configuracoes, RLS, Realtime) — ação manual pendente.
+- Continuar para Parte 1 (WhatsApp Baileys bot) após schema estar pronto.
 
 ## High-Level Progress
-- **Backend Architecture**: 100% (Modulado com Blueprints e SQLAlchemy).
-- **Core Features**: 90% (Faltando polimento no booking via chat).
-- **Security Audit**: 100% (Sensitive files ignored).
+- **Backend Flask**: 95% (notifications.py corrigido, endpoints /config e /notificar criados)
+- **Flutter App**: 90% (Supabase Realtime + NotificationService criados)
+- **ChatWeb**: 95% (B2+B3 corrigidos, feedback visual, POST push após booking)
+- **Supabase Schema**: 0% (pendente — requer SQL manual no dashboard)
 
 ## Knowledge Snapshot
-- **FCM**: Backend estruturado em `utils/notifications.py`. Front-end Flutter aguardando integração nativa para Windows.
-- **SQLAlchemy**: Plena utilização de modelos para integridade de dados.
-- **Python 3.14**: Suporte garantido em termos de arquitetura padrão.
+- **FCM**: notifications.py corrigido com `send_each_for_multicast`, init check `firebase_admin._apps`
+- **Supabase Realtime**: channel 'agendamentos-changes' no ApiService, iniciarRealtime() após login
+- **Double-booking**: 409 conflict já implementado em public.py
+- **WhatsApp Bot**: Baileys bot pronto para implementar (depende de backend + /api/public/config)
 
 ## Next Step Recommendations
-- Rodar `/gsd-plan-phase 2` (ou equivalente no novo roadmap) para focar na integração FCM ponta-a-ponta.
+- Executar SQL do Supabase Schema (etapa 1 do PLAN.md Fase 2)
+- Ou avançar para Parte 1: WhatsApp Baileys Bot (independente do schema)
