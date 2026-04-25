@@ -186,3 +186,39 @@ def post_agendar_public():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Erro ao processar agendamento: {str(e)}'}), 500
+
+@public_bp.route('/api/public/config', methods=['GET'])
+def get_config_public():
+    """
+    Retorna configurações públicas usadas pelo bot WhatsApp e pelo ChatWeb.
+    Não expõe dados sensíveis — apenas mensagens e URLs configuráveis.
+    """
+    configuracoes = Configuracao.query.all()
+    config_map = {c.chave: c.valor for c in configuracoes}
+
+    return jsonify({
+        'whatsapp_mensagem': config_map.get('whatsapp_mensagem', 'Olá! Para agendar um horário, acesse o link abaixo 👇'),
+        'chatweb_url':       config_map.get('chatweb_url', 'https://chat.klipper.app'),
+        'horario_inicio':    config_map.get('horario_inicio', '08:00'),
+        'horario_fim':      config_map.get('horario_fim', '18:00'),
+    })
+
+@public_bp.route('/api/public/notificar-agendamento', methods=['POST'])
+def notificar_agendamento():
+    """
+    Chamado pelo ChatWeb após inserir agendamento no Supabase.
+    Apenas dispara o push FCM para o barbeiro — não grava nada.
+    """
+    data = request.get_json()
+    required = ['cliente_nome', 'servico_nome', 'data_hora_fmt']
+
+    if not data or not all(k in data for k in required):
+        return jsonify({'error': 'Campos obrigatórios: cliente_nome, servico_nome, data_hora_fmt'}), 400
+
+    from utils.notifications import enviar_notificacao_novo_agendamento
+    notificado = enviar_notificacao_novo_agendamento(
+        cliente_nome=data['cliente_nome'],
+        servico_nome=data['servico_nome'],
+        data_hora_str=data['data_hora_fmt'],
+    )
+    return jsonify({'notificado': notificado}), 200
