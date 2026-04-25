@@ -19,16 +19,12 @@ const STORAGE_KEY = 'klipper_telefone';
 
 // ─── Máscara de telefone brasileiro ────────────────────────────────────────────
 function formatarTelefone(value) {
-    // Always work from pure digits — accepts raw or partially formatted input
     const digits = value.replace(/\D/g, '');
     if (digits.length === 0) return '';
-    if (digits.length <= 2) return `(${digits}`;
-    if (digits.length <= 7) {
-        // (XX)XXXXX-XXXX — digits[2] is the 9, rest follows
-        return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
-    }
-    // (XX)9XXXX-XXXX — 11 digits total
-    return `(${digits.slice(0, 2)})${digits[2]}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
+    if (digits.length <= 2)  return `(${digits}`;
+    if (digits.length <= 7)  return `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7,11)}`;
 }
 
 function apenasDigitos(str) {
