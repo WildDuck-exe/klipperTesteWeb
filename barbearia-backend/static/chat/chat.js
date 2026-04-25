@@ -335,64 +335,28 @@ function handleDateInput() {
 async function showTimes() {
     const loader = showTyping();
     try {
-        // Simple logic for demo: list some hours and check if they are already taken in Supabase
-        const baseTimes = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"];
-        
-        // Fetch existing appointments for the selected date
-        const startOfDay = `${userData.data}T00:00:00`;
-        const endOfDay = `${userData.data}T23:59:59`;
-
-        const { data: taken, error } = await _supabase
-            .from('agendamentos')
-            .select('data_hora')
-            .gte('data_hora', startOfDay)
-            .lte('data_hora', endOfDay)
-            .neq('status', 'cancelado');
-
+        const url = `${BACKEND_URL}/api/public/horarios?data=${userData.data}&servico_id=${userData.servico_id}`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
         loader.remove();
 
-        if (error) {
-            addMessage("Erro ao carregar horários. Tente novamente.", "system");
-            return;
-        }
+        const disponiveis = json.disponiveis || [];
 
-        const takenTimes = taken.map(a => {
-            const date = new Date(a.data_hora);
-            return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-        });
-
-        // Filter: Remove times already taken AND past times if today
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-
-        const availableTimes = baseTimes.filter(t => {
-            // Check if taken
-            if (takenTimes.includes(t)) return false;
-
-            // Check if past (only if today)
-            if (userData.data === todayStr) {
-                const [h, m] = t.split(':').map(Number);
-                if (h < currentHour) return false;
-                if (h === currentHour && m <= currentMinute) return false;
-            }
-
-            return true;
-        });
-
-        if (availableTimes.length === 0) {
-            addMessage("Nenhum horário disponível nesta data. 😔 Por favor, escolha outro dia.", "system");
+        if (disponiveis.length === 0) {
+            addMessage("Nenhum horário disponível nesta data. 😔 Escolha outro dia.", "system");
             setTimeout(() => askDate(), 1500);
             return;
         }
 
-        addMessage(`Temos <strong>${availableTimes.length}</strong> horários disponíveis. Qual prefere?`, "system", true);
+        addMessage(
+            `Temos <strong>${disponiveis.length}</strong> horários disponíveis. Qual prefere?`,
+            "system", true
+        );
 
         const grid = document.createElement('div');
         grid.className = 'horarios-grid';
-
-        availableTimes.forEach(hora => {
+        disponiveis.forEach(hora => {
             const btn = document.createElement('button');
             btn.className = 'time-chip';
             btn.textContent = hora;
@@ -402,9 +366,11 @@ async function showTimes() {
 
         chatWindow.appendChild(grid);
         chatWindow.scrollTop = chatWindow.scrollHeight;
+        userInput.disabled = true;
     } catch (e) {
         loader.remove();
         addMessage("Erro ao carregar horários. Tente novamente.", "system");
+        console.error('[showTimes]', e);
     }
 }
 
