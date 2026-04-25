@@ -14,20 +14,24 @@ def init_firebase():
     """Inicializa o SDK do Firebase Admin."""
     global _firebase_initialized
     if _firebase_initialized:
-        return
-    
+        return True
+
     cred_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'firebase-service-account.json')
-    
+
     if os.path.exists(cred_path):
         try:
-            cred = credentials.Certificate(cred_path)
-            firebase_admin.initialize_app(cred)
+            if not firebase_admin._apps:
+                cred = credentials.Certificate(cred_path)
+                firebase_admin.initialize_app(cred)
             _firebase_initialized = True
             print("Firebase inicializado com sucesso.")
+            return True
         except Exception as e:
             print(f"Erro ao inicializar Firebase: {e}")
+            return False
     else:
         print(f"Aviso: Arquivo de credenciais não encontrado em {cred_path}. Notificações push estarão desativadas.")
+        return False
 
 def enviar_notificacao_novo_agendamento(cliente_nome, servico_nome, data_hora_str):
     """Envia uma notificação push para todos os dispositivos registrados."""
@@ -59,9 +63,9 @@ def enviar_notificacao_novo_agendamento(cliente_nome, servico_nome, data_hora_st
     )
 
     try:
-        response = messaging.send_multicast(message)
-        print(f"Notificações enviadas: {response.success_count} sucesso, {response.failure_count} falha.")
-        return response.success_count > 0
+        resp = messaging.send_each_for_multicast(message)
+        print(f"Notificações enviadas: {resp.success_count} sucesso, {resp.failure_count} falha.")
+        return resp.success_count > 0
     except Exception as e:
         print(f"Erro ao enviar notificação multicast: {e}")
         return False
