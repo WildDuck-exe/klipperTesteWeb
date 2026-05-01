@@ -1,6 +1,6 @@
 {
-    "name": "barbearia_frontend",
-    "short_name": "barbearia_frontend",
+    "name": "Klipper",
+    "short_name": "Klipper",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

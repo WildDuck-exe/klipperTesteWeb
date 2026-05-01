@@ -336,7 +336,9 @@ async function showTimes() {
     const loader = showTyping();
     try {
         const url = `${BACKEND_URL}/api/public/horarios?data=${userData.data}&servico_id=${userData.servico_id}`;
-        const resp = await fetch(url);
+        const resp = await fetch(url, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const json = await resp.json();
         loader.remove();
@@ -465,7 +467,10 @@ async function finishBooking() {
             const horaFmtFull = horaFmt;
             fetch(`${BACKEND_URL}/api/public/notificar-agendamento`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: JSON.stringify({
                     cliente_nome:  userData.nome,
                     servico_nome:  userData.servico_nome,

@@ -66,7 +66,9 @@
       "Bash(find /d/IA/Projeto_Klipper -maxdepth 2 -type d -name *chat* -o -maxdepth 2 -type d -name *web*)",
       "Bash(find /d/IA/Projeto_Klipper -maxdepth 3 -type f \\\\\\(-name *.html -o -name index.html \\\\\\))",
       "Skill(gsd-execute-phase)",
-      "Bash(find D:/IA/Projeto_Klipper -name *KLIPPER* -o -name *FASEADA*)"
+      "Bash(find D:/IA/Projeto_Klipper -name *KLIPPER* -o -name *FASEADA*)",
+      "Bash(find /d/IA/Projeto_Klipper/barbearia-frontend -name *.apk -type f)",
+      "Bash(find /d/IA/Projeto_Klipper/barbearia-frontend/build -name *.apk -type f)"
     ]
   },
   "enabledPlugins": {

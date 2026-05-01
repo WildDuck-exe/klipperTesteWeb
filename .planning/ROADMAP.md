@@ -13,13 +13,14 @@
 - [x] **Chat UI**: Feedback visual ao confirmar agendamento.
 - [x] **FCM Client**: Registro de token + Supabase Realtime no app Flutter.
 - [x] **Validação de Conflito**: Lógica de double-booking em public.py (retorna 409).
-- [ ] **Supabase Schema**: SQL tables + RLS + Realtime (requer execução manual no dashboard).
+- [x] **Supabase Schema**: SQL tables + RLS + Realtime ✅
 
-## Fase 2 Concluída (10/15 tasks)
+## Fase 2 Concluída (15/15 tasks)
 - Backend: notifications.py corrigido, endpoints /config e /notificar-agendamento criados
 - Flutter: Supabase Realtime + NotificationService criados
 - Chat: feedback visual + POST /notificar-agendamento após booking
 - Double-booking: 409 returned when conflict detected
+- Supabase Schema: push_tokens + configuracoes criados, RLS + Realtime habilitados
 
 ## Marco 3: Compatibilidade e Entrega Acadêmica
 **Status**: 🟢 Concluído

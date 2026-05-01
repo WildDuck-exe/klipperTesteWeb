@@ -372,6 +372,7 @@ class ApiService extends ChangeNotifier {
   /// Headers com autenticação
   Map<String, String> get _authHeaders => {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
     if (_token != null) 'Authorization': 'Bearer $_token',
   };
 
@@ -410,7 +411,11 @@ class ApiService extends ChangeNotifier {
 
         final response = await http.post(
           Uri.parse('$_baseUrl/api/auth/register-token'),
-          headers: _authHeaders,
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+            if (_token != null) 'Authorization': 'Bearer $_token',
+          },
           body: json.encode({
             'token': fcmToken,
             'dispositivo': currentPlatform,
@@ -441,7 +446,10 @@ class ApiService extends ChangeNotifier {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: json.encode({'username': username, 'password': password}),
       );
 
@@ -483,7 +491,10 @@ class ApiService extends ChangeNotifier {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/auth/register'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: json.encode({
           'username': username,
           'email': email,

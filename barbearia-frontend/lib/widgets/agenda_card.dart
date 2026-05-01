@@ -38,6 +38,24 @@ class AgendaCard extends StatelessWidget {
     }
   }
 
+  String _formatarDia(String dataHora) {
+    try {
+      final dateTime = DateTime.parse(dataHora);
+      return DateFormat('dd').format(dateTime);
+    } catch (e) {
+      return '--';
+    }
+  }
+
+  String _formatarMes(String dataHora) {
+    try {
+      final dateTime = DateTime.parse(dataHora);
+      return DateFormat('MMM', 'pt_BR').format(dateTime).toUpperCase();
+    } catch (e) {
+      return 'MES';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -75,15 +93,34 @@ class AgendaCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
+                      _formatarDia(agendamento.dataHora),
+                      style: GoogleFonts.outfit(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.0,
+                      ),
+                    ),
+                    Text(
+                      _formatarMes(agendamento.dataHora),
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Icon(Icons.circle, size: 4, color: Colors.white24),
+                    ),
+                    Text(
                       _formatarHora(agendamento.dataHora),
                       style: GoogleFonts.outfit(
-                        fontSize: 22,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    const Icon(Icons.circle, size: 6, color: Colors.white24),
                   ],
                 ),
               ),

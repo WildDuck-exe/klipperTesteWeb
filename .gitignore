@@ -1,5 +1,38 @@
-
-.claude/worktrees/
-*.db
+# Python/Flask
+__pycache__/
+*.py[cod]
+*$py.class
 .venv/
 barbearia-backend/__pycache__/
+barbearia-backend/.env
+
+# Database
+*.db
+*.sqlite3
+
+# Node/Frontend
+node_modules/
+.next/
+dist/
+build/
+
+# GSD/Claude/Tools
+.claude/worktrees/
+.gemini/
+scratch/
+barbearia-backend/scratch/
+repomix-output.*
+folder_list*.txt
+folders.txt
+
+# Temp/Duplicate Documents
+realtime_notification_service.dart
+FIX_DEFINITIVO_KLIPPER.md
+RELATORIO_FINAL_IAN_SANTOS.html
+temp_docs/
+
+# IDE/System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

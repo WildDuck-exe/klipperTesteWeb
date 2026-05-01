@@ -336,7 +336,9 @@ async function showTimes() {
     const loader = showTyping();
     try {
         const url = `${BACKEND_URL}/api/public/horarios?data=${userData.data}&servico_id=${userData.servico_id}`;
-        const resp = await fetch(url);
+        const resp = await fetch(url, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const json = await resp.json();
         loader.remove();
@@ -421,57 +423,31 @@ async function finishBooking() {
 
     const loader = showTyping();
     try {
-        // 1. Get or Create Client
-        let clienteId;
-        const { data: existingCliente } = await _supabase
-            .from('clientes')
-            .select('id')
-            .eq('telefone', userData.telefone)
-            .single();
-
-        if (existingCliente) {
-            clienteId = existingCliente.id;
-        } else {
-            const { data: newCliente, error: createError } = await _supabase
-                .from('clientes')
-                .insert([{ nome: userData.nome, telefone: userData.telefone }])
-                .select()
-                .single();
-            
-            if (createError) throw createError;
-            clienteId = newCliente.id;
-        }
-
-        // 2. Create Appointment
-        const { error: bookingError } = await _supabase
-            .from('agendamentos')
-            .insert([{
-                cliente_id: clienteId,
-                servico_id: userData.servico_id,
+        // Envia o agendamento para o backend (salva no SQLite + dispara notificação FCM)
+        const resp = await fetch(`${BACKEND_URL}/api/public/agendar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({
+                nome: userData.nome,
+                telefone: userData.telefone,
+                servico_id: parseInt(userData.servico_id),
                 data_hora: userData.data_hora,
-                status: 'agendado'
-            }]);
+                observacoes: ''
+            })
+        });
 
         loader.remove();
+        const result = await resp.json();
 
-        if (!bookingError) {
+        if (resp.ok) {
             localStorage.setItem(STORAGE_KEY, userData.telefone);
 
             const ticketId = Math.random().toString(36).substr(2, 9).toUpperCase();
             const dataFmt = userData.data.split('-').reverse().join('/');
             const horaFmt = userData.data_hora.split('T')[1].substring(0, 5);
-
-            // Notifica o backend para disparar FCM ao barbeiro
-            const horaFmtFull = horaFmt;
-            fetch(`${BACKEND_URL}/api/public/notificar-agendamento`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    cliente_nome:  userData.nome,
-                    servico_nome:  userData.servico_nome,
-                    data_hora_fmt: `${dataFmt} às ${horaFmtFull}`,
-                }),
-            }).catch(err => console.warn('[Push]', err));
 
             addMessage(`
                 <div class="success-animation">
@@ -485,8 +461,15 @@ async function finishBooking() {
             showSuccessModal(userData.servico_nome, dataFmt, horaFmt, ticketId);
             addMessage(`O barbeiro já foi notificado em tempo real. Te esperamos lá! 💈`, "system");
 
+        } else if (resp.status === 409) {
+            addMessage(`⚠️ ${result.error || 'Este horário acabou de ser preenchido. Escolha outro.'}`, "system");
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '✅ Confirmar Agendamento';
+            }
+            setTimeout(() => showTimes(), 1500);
         } else {
-            addMessage(`Erro ao agendar: ${bookingError.message}`, "system");
+            addMessage(`Erro ao agendar: ${result.error || 'Tente novamente.'}`, "system");
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = '✅ Confirmar Agendamento';

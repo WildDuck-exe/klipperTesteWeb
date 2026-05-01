@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Connection</title>
+    <script src="supabase-config.js"></script>
+</head>
+<body style="font-family: sans-serif; padding: 50px; background: #1a1a1a; color: white; text-align: center;">
+    <h1>Configuração Atual do Chat</h1>
+    <div style="background: #333; padding: 20px; border-radius: 10px; display: inline-block; margin-top: 20px;">
+        <p><strong>Link do Backend:</strong></p>
+        <code id="link" style="font-size: 20px; color: #00ff00;">Carregando...</code>
+    </div>
+    <script>
+        document.getElementById('link').innerText = typeof BACKEND_URL !== 'undefined' ? BACKEND_URL : 'BACKEND_URL não definida!';
+    </script>
+</body>
+</html>

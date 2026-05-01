@@ -7,22 +7,29 @@ Fornece endpoints para gerenciamento de clientes, serviços e agendamentos.
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 import os
+from dotenv import load_dotenv
 from config import Config
 from models import db
 from routes import register_blueprints
+
+# Carrega variáveis de ambiente do .env
+load_dotenv()
 
 # Inicialização da aplicação Flask
 app = Flask(__name__, static_folder='static')
 app.config.from_object(Config)
 
-# Configuração do CORS
-CORS(app, resources=app.config['CORS_RESOURCES'])
+import os
+
+# Configuração do CORS (origens configuráveis via env var)
+_cors_origins = os.getenv('CORS_ORIGINS', '*')
+CORS(app, resources={r"/api/*": {"origins": _cors_origins, "allow_headers": ["Content-Type", "ngrok-skip-browser-warning"], "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}})
 
 # Inicializa o SQLAlchemy com o App
 db.init_app(app)
 
 # Configurações do App
-app.config['SECRET_KEY'] = 'dev-secret-key-barbearia-2026'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-barbearia-2026')
 
 # Registro de Blueprints
 register_blueprints(app)

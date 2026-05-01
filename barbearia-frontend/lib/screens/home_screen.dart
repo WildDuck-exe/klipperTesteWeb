@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../services/api_service.dart';
+import '../services/realtime_notification_service.dart';
 import '../widgets/agenda_card.dart';
 import '../widgets/magic_bottom_nav.dart';
 import 'clientes_screen.dart';
@@ -18,6 +19,10 @@ import 'novo_agendamento_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+// Acessa o plugin e canal declarados em main.dart
+import '../main.dart' show flutterLocalNotificationsPlugin, channel;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,32 +35,104 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  late final RealtimeNotificationService _realtimeService;
+
   @override
   void initState() {
     super.initState();
+    _realtimeService = RealtimeNotificationService.instance(
+      flutterLocalNotificationsPlugin,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
       _setupRealtimeUpdate();
+      _setupSupabaseRealtime(); // ✅ Notificação direta via Supabase
+      _registrarFcmToken(); // FCM como fallback
     });
   }
 
-  void _setupRealtimeUpdate() {
-    if (kIsWeb) return; // Blindagem total na Web
-
-    if (defaultTargetPlatform == TargetPlatform.android || 
-        defaultTargetPlatform == TargetPlatform.iOS || 
-        defaultTargetPlatform == TargetPlatform.windows) {
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        _refreshData();
-        if (mounted) {
-          _showNewBookingDialog(
-            message.notification?.title ?? 'Novo Agendamento',
-            message.notification?.body ?? 'Um cliente acabou de agendar via chat.'
-          );
-        }
-      });
-    }
+  @override
+  void dispose() {
+    // Não para o listener global — ele continua ativo enquanto o app viver
+    super.dispose();
   }
+
+  /// Configura Supabase Realtime para notificações diretas (sem FCM/backend)
+  void _setupSupabaseRealtime() {
+    _realtimeService.onNewAgendamento = () {
+      if (mounted) {
+        _refreshData();
+        _showNewBookingDialog(
+          '💈 Novo Agendamento!',
+          'Um cliente acabou de agendar via chat.',
+        );
+      }
+    };
+    _realtimeService.startListening();
+    debugPrint('[Home] ✅ Supabase Realtime ativado — notificações diretas!');
+  }
+
+  /// Registra o token FCM no backend (que salva no Supabase).
+/// Chamado toda vez que HomeScreen carrega — upsert garante que não duplica.
+Future<void> _registrarFcmToken() async {
+  if (kIsWeb) return;
+  if (defaultTargetPlatform != TargetPlatform.android &&
+      defaultTargetPlatform != TargetPlatform.iOS) return;
+
+  try {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    await apiService.registrarPushToken();
+    debugPrint('[Home] Token FCM registrado com sucesso.');
+  } catch (e) {
+    debugPrint('[Home] Erro ao registrar token FCM: $e');
+  }
+}
+
+void _setupRealtimeUpdate() {
+  if (kIsWeb) return;
+  if (defaultTargetPlatform != TargetPlatform.android &&
+      defaultTargetPlatform != TargetPlatform.iOS) return;
+
+  // ── App em FOREGROUND ─────────────────────────────────────────────────────
+  // Android NÃO mostra banner automaticamente em foreground.
+  // É obrigatório usar flutter_local_notifications para exibir o popup.
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    _refreshData(); // atualiza a lista de agendamentos
+
+    final notification = message.notification;
+    if (notification == null) return;
+
+    // ✅ Exibe banner mesmo com app aberto
+    flutterLocalNotificationsPlugin.show(
+      notification.hashCode,
+      notification.title,
+      notification.body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          channel.id,
+          channel.name,
+          channelDescription: channel.description,
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+      ),
+    );
+
+    // Dialog in-app adicional (já existia — mantido)
+    if (mounted) {
+      _showNewBookingDialog(
+        notification.title ?? 'Novo Agendamento',
+        notification.body ?? 'Um cliente acabou de agendar via chat.',
+      );
+    }
+  });
+
+  // ── Usuário toca na notificação com app em background ────────────────────
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    _refreshData();
+  });
+}
 
   void _showNewBookingDialog(String title, String body) {
     showDialog(

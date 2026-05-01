@@ -289,6 +289,7 @@ class ApiService extends ChangeNotifier {
   /// Headers com autenticação
   Map<String, String> get _authHeaders => {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
     if (_token != null) 'Authorization': 'Bearer $_token',
   };
 
@@ -350,7 +351,10 @@ class ApiService extends ChangeNotifier {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: json.encode({'username': username, 'password': password}),
       );
 
@@ -395,7 +399,10 @@ class ApiService extends ChangeNotifier {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/auth/register'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: json.encode({
           'username': username,
           'email': email,
@@ -505,26 +512,56 @@ class ApiService extends ChangeNotifier {
   Future<void> fetchDashboard({String period = 'today'}) async {
     _isLoading = true;
     _error = null;
-    _dashboardData = null; // Limpa dados antigos para forçar atualização visual
+    _dashboardData = null; 
     notifyListeners();
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/agenda/dashboard?period=$period'),
-        headers: _authHeaders,
-      );
+      final supabase = Supabase.instance.client;
+      
+      // Busca agendamentos com os preços dos serviços
+      final List<dynamic> data = await supabase
+          .from('agendamentos')
+          .select('status, data_hora, servicos(preco)');
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        _dashboardData = DashboardData.fromJson(data);
-      } else if (response.statusCode == 401) {
-        await logout();
-        _error = 'Sessão expirada. Por favor, faça login novamente.';
-      } else {
-        _error = 'Erro ao carregar dashboard: ${response.statusCode}';
+      int total = 0;
+      int concluidos = 0;
+      double estimado = 0;
+      double real = 0;
+
+      final agora = DateTime.now();
+      final hoje = DateTime(agora.year, agora.month, agora.day);
+      
+      for (var item in data) {
+        final dt = DateTime.parse(item['data_hora']);
+        final dataAppt = DateTime(dt.year, dt.month, dt.day);
+        bool count = false;
+        
+        if (period == 'today' && dataAppt.isAtSameMomentAs(hoje)) count = true;
+        else if (period == 'weekly' && dataAppt.isAfter(hoje.subtract(const Duration(days: 7)))) count = true;
+        else if (period == 'monthly' && dataAppt.isAfter(hoje.subtract(const Duration(days: 30)))) count = true;
+
+        if (count && item['status'] != 'cancelado') {
+          total++;
+          double preco = ((item['servicos']?['preco']) ?? 0.0).toDouble();
+          estimado += preco;
+          if (item['status'] == 'concluido') {
+            concluidos++;
+            real += preco;
+          }
+        }
       }
+
+      _dashboardData = DashboardData(
+        totalAgendamentos: total,
+        agendamentosConcluidos: concluidos,
+        faturamentoEstimado: estimado,
+        faturamentoReal: real,
+        period: period == 'today' ? 'Hoje' : (period == 'weekly' ? 'Semana' : 'Mês'),
+      );
+      
     } catch (e) {
-      _error = 'Erro de conexão: $e';
+      debugPrint('Erro ao carregar dashboard do Supabase: $e');
+      _error = 'Erro ao carregar estatísticas: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -593,22 +630,34 @@ class ApiService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/agendamentos'),
-        headers: _authHeaders,
-      );
+      final supabase = Supabase.instance.client;
+      final List<dynamic> data = await supabase
+          .from('agendamentos')
+          .select('''
+            *,
+            clientes (nome, telefone),
+            servicos (nome)
+          ''')
+          .order('data_hora', ascending: false);
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        _agendamentos = data.map((json) => Agendamento.fromJson(json)).toList();
-      } else if (response.statusCode == 401) {
-        await logout();
-        _error = 'Sessão expirada. Por favor, faça login novamente.';
-      } else {
-        _error = 'Erro ao carregar agendamentos: ${response.statusCode}';
-      }
+      _agendamentos = data.map((item) {
+        return Agendamento(
+          id: item['id'],
+          clienteId: item['cliente_id'],
+          servicoId: item['servico_id'],
+          dataHora: item['data_hora'],
+          observacoes: item['observacoes'] ?? '',
+          status: item['status'] ?? 'agendado',
+          clienteNome: (item['clientes']?['nome']) ?? 'Cliente',
+          servicoNome: (item['servicos']?['nome']) ?? 'Serviço',
+          clienteTelefone: (item['clientes']?['telefone']) ?? '',
+        );
+      }).toList();
+      
+      _error = null;
     } catch (e) {
-      _error = 'Erro de conexão: $e';
+      debugPrint('Erro ao buscar agendamentos no Supabase: $e');
+      _error = 'Erro de conexão com o banco online: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -621,21 +670,39 @@ class ApiService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/agenda/hoje'),
-        headers: _authHeaders,
-      );
+      final hoje = DateTime.now();
+      final inicioDia = DateTime(hoje.year, hoje.month, hoje.day).toIso8601String();
+      final fimDia = DateTime(hoje.year, hoje.month, hoje.day, 23, 59, 59).toIso8601String();
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        _agendaHoje = data.map((json) => Agendamento.fromJson(json)).toList();
-      } else if (response.statusCode == 401) {
-        await logout();
-        _error = 'Sessão expirada. Por favor, faça login novamente.';
-      } else {
-        _error = 'Erro ao carregar agenda do dia: ${response.statusCode}';
-      }
+      final supabase = Supabase.instance.client;
+      final List<dynamic> data = await supabase
+          .from('agendamentos')
+          .select('''
+            *,
+            clientes (nome, telefone),
+            servicos (nome)
+          ''')
+          .gte('data_hora', inicioDia)
+          .lte('data_hora', fimDia)
+          .order('data_hora', ascending: true);
+
+      _agendaHoje = data.map((item) {
+        return Agendamento(
+          id: item['id'],
+          clienteId: item['cliente_id'],
+          servicoId: item['servico_id'],
+          dataHora: item['data_hora'],
+          observacoes: item['observacoes'] ?? '',
+          status: item['status'] ?? 'agendado',
+          clienteNome: (item['clientes']?['nome']) ?? 'Cliente',
+          servicoNome: (item['servicos']?['nome']) ?? 'Serviço',
+          clienteTelefone: (item['clientes']?['telefone']) ?? '',
+        );
+      }).toList();
+      
+      _error = null;
     } catch (e) {
+      debugPrint('Erro ao buscar agenda de hoje no Supabase: $e');
       _error = 'Erro de conexão: $e';
     } finally {
       _isLoading = false;
@@ -645,24 +712,18 @@ class ApiService extends ChangeNotifier {
 
   Future<Map<String, dynamic>> criarCliente(String nome, String telefone) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/clientes'),
-        headers: _authHeaders,
-        body: json.encode({
-          'nome': nome,
-          'telefone': telefone,
-        }),
-      );
+      final supabase = Supabase.instance.client;
+      final data = await supabase
+          .from('clientes')
+          .insert({'nome': nome, 'telefone': telefone})
+          .select()
+          .single();
 
-      if (response.statusCode == 201) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        await fetchClientes();
-        return {'success': true, 'message': data['message'], 'id': data['id']};
-      } else {
-        return {'success': false, 'message': 'Erro: ${response.statusCode}'};
-      }
+      await fetchClientes();
+      return {'success': true, 'message': 'Cliente cadastrado', 'id': data['id']};
     } catch (e) {
-      return {'success': false, 'message': 'Erro de conexão: $e'};
+      debugPrint('Erro ao criar cliente no Supabase: $e');
+      return {'success': false, 'message': 'Erro ao cadastrar cliente: $e'};
     }
   }
 
@@ -673,66 +734,58 @@ class ApiService extends ChangeNotifier {
     String observacoes,
   ) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/agendamentos'),
-        headers: _authHeaders,
-        body: json.encode({
-          'cliente_id': clienteId,
-          'servico_id': servicoId,
-          'data_hora': dataHora,
-          'observacoes': observacoes,
-          'status': 'agendado',
-        }),
-      );
+      final supabase = Supabase.instance.client;
+      final data = await supabase
+          .from('agendamentos')
+          .insert({
+            'cliente_id': clienteId,
+            'servico_id': servicoId,
+            'data_hora': dataHora,
+            'observacoes': observacoes,
+            'status': 'agendado',
+          })
+          .select()
+          .single();
 
-      if (response.statusCode == 201) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        await fetchAgendamentos();
-        await fetchAgendaHoje();
-        return {'success': true, 'message': data['message'], 'id': data['id']};
-      } else {
-        return {'success': false, 'message': 'Erro: ${response.statusCode}'};
-      }
+      await fetchAgendamentos();
+      await fetchAgendaHoje();
+      
+      return {'success': true, 'message': 'Agendamento realizado', 'id': data['id']};
     } catch (e) {
-      return {'success': false, 'message': 'Erro de conexão: $e'};
+      debugPrint('Erro ao criar agendamento no Supabase: $e');
+      return {'success': false, 'message': 'Erro ao agendar: $e'};
     }
   }
 
   Future<Map<String, dynamic>> concluirAgendamento(int id) async {
     try {
-      final response = await http.put(
-        Uri.parse('$_baseUrl/api/agendamentos/$id/concluir'),
-        headers: _authHeaders,
-      );
+      final supabase = Supabase.instance.client;
+      await supabase
+          .from('agendamentos')
+          .update({'status': 'concluido'})
+          .eq('id', id);
 
-      if (response.statusCode == 200) {
-        await fetchAgendamentos();
-        await fetchAgendaHoje();
-        return {'success': true, 'message': 'Agendamento concluído com sucesso'};
-      } else {
-        return {'success': false, 'message': 'Erro: ${response.statusCode}'};
-      }
+      await fetchAgendamentos();
+      await fetchAgendaHoje();
+      return {'success': true, 'message': 'Agendamento concluído'};
     } catch (e) {
-      return {'success': false, 'message': 'Erro de conexão: $e'};
+      return {'success': false, 'message': 'Erro ao concluir: $e'};
     }
   }
 
   Future<Map<String, dynamic>> cancelarAgendamento(int id) async {
     try {
-      final response = await http.put(
-        Uri.parse('$_baseUrl/api/agendamentos/$id/cancelar'),
-        headers: _authHeaders,
-      );
+      final supabase = Supabase.instance.client;
+      await supabase
+          .from('agendamentos')
+          .update({'status': 'cancelado'})
+          .eq('id', id);
 
-      if (response.statusCode == 200) {
-        await fetchAgendamentos();
-        await fetchAgendaHoje();
-        return {'success': true, 'message': 'Agendamento cancelado com sucesso'};
-      } else {
-        return {'success': false, 'message': 'Erro: ${response.statusCode}'};
-      }
+      await fetchAgendamentos();
+      await fetchAgendaHoje();
+      return {'success': true, 'message': 'Agendamento cancelado'};
     } catch (e) {
-      return {'success': false, 'message': 'Erro de conexão: $e'};
+      return {'success': false, 'message': 'Erro ao cancelar: $e'};
     }
   }
 

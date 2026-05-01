@@ -15,7 +15,7 @@ class Config:
 
     # Configurações de CORS
     CORS_ORIGINS = "*"  # Em produção, especificar origens permitidas
-    CORS_RESOURCES = {r"/api/*": {"origins": "*"}}
+    CORS_RESOURCES = {r"/api/*": {"origins": "*", "allow_headers": ["Content-Type", "ngrok-skip-browser-warning"]}}
 
     # Configurações da API
     API_PREFIX = '/api'

@@ -1,45 +1,67 @@
-// lib/services/notification_service.dart
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 class NotificationService {
-  /// Registra o token FCM no Supabase (tabela push_tokens)
   static Future<void> registrarToken() async {
-    final token = await FirebaseMessaging.instance.getToken();
-    if (token == null) return;
+    try {
+      // Garante permissão antes de pedir token
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
 
-    await Supabase.instance.client
-        .from('push_tokens')
-        .upsert(
-          {'token': token, 'updated_at': DateTime.now().toIso8601String()},
+      debugPrint('[FCM] Status permissão: ${settings.authorizationStatus}');
+
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        debugPrint('[FCM] Permissão negada — token não será registrado.');
+        return;
+      }
+
+      // Aguarda token com timeout
+      final token = await FirebaseMessaging.instance.getToken()
+          .timeout(const Duration(seconds: 10));
+
+      debugPrint('[FCM] Token obtido: $token');
+
+      if (token == null) {
+        debugPrint('[FCM] Token nulo — Firebase pode não ter inicializado.');
+        return;
+      }
+
+      await Supabase.instance.client
+          .from('push_tokens')
+          .upsert(
+            {'token': token, 'updated_at': DateTime.now().toIso8601String()},
+            onConflict: 'token',
+          );
+
+      debugPrint('[FCM] ✅ Token registrado no Supabase: ${token.substring(0, 20)}...');
+
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+        Supabase.instance.client.from('push_tokens').upsert(
+          {'token': newToken, 'updated_at': DateTime.now().toIso8601String()},
           onConflict: 'token',
         );
+        debugPrint('[FCM] Token renovado: ${newToken.substring(0, 20)}...');
+      });
 
-    // Renovação automática de token
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-      Supabase.instance.client.from('push_tokens').upsert(
-        {'token': newToken, 'updated_at': DateTime.now().toIso8601String()},
-        onConflict: 'token',
-      );
-    });
-
-    debugPrint('[FCM] Token registrado: $token');
+    } catch (e) {
+      debugPrint('[FCM] ❌ Erro ao registrar token: $e');
+    }
   }
 
-  /// Configura handlers para mensagens em foreground
   static void configurarHandlers() {
     FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
-      debugPrint('[FCM] Foreground: ${msg.notification?.title} — ${msg.notification?.body}');
-      // TODO: mostrar SnackBar ou atualizar badge
+      debugPrint('[FCM] Foreground: ${msg.notification?.title}');
     });
 
-    // Handler para quando usuário toca notificação e app está em background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage msg) {
       debugPrint('[FCM] onMessageOpenedApp: ${msg.data}');
     });
   }
 
-  /// Solicita permissão de notificações (iOS/Android)
   static Future<bool> solicitarPermissao() async {
     final settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,

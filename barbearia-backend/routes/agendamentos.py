@@ -57,20 +57,63 @@ def create_agendamento():
 @agendamentos_bp.route('/api/agendamentos/<int:id>/concluir', methods=['PUT'])
 @login_required
 def concluir_agendamento(id):
-    ag = Agendamento.query.get(id)
-    if not ag: return jsonify({'error': '404'}), 404
-    ag.status = 'concluido'
-    db.session.commit()
+    _update_status_both_db(id, 'concluido')
     return jsonify({'message': 'OK'})
 
 @agendamentos_bp.route('/api/agendamentos/<int:id>/cancelar', methods=['PUT'])
 @login_required
 def cancelar_agendamento(id):
-    ag = Agendamento.query.get(id)
-    if not ag: return jsonify({'error': '404'}), 404
-    ag.status = 'cancelado'
-    db.session.commit()
+    _update_status_both_db(id, 'cancelado')
     return jsonify({'message': 'OK'})
+
+
+def _update_status_both_db(supabase_id, novo_status):
+    """Atualiza o status tanto no Supabase quanto no SQLite.
+       O frontend envia o ID do Supabase."""
+    try:
+        from supabase_client import get_supabase
+        sb = get_supabase()
+
+        # 1. Atualiza no Supabase
+        result = sb.table('agendamentos').update({'status': novo_status}).eq('id', supabase_id).execute()
+        
+        data_hora_str = None
+        if result.data:
+            data_hora_str = result.data[0].get('data_hora')
+            print(f"[Sync] Supabase ID {supabase_id} atualizado para {novo_status}.")
+        else:
+            print(f"[Sync] ⚠️ Supabase ID {supabase_id} não encontrado. Tentando como ID local...")
+            # Fallback caso seja um ID do SQLite
+            ag = Agendamento.query.get(supabase_id)
+            if ag:
+                data_hora_str = ag.data_hora.isoformat()
+                ag.status = novo_status
+                db.session.commit()
+                print(f"[Sync] SQLite ID {supabase_id} atualizado via fallback.")
+                return
+
+        # 2. Atualiza no SQLite buscando pela data_hora
+        if data_hora_str:
+            # Parse da string do Supabase (ex: '2026-04-27T12:00:00+00:00')
+            try:
+                dt_str_clean = data_hora_str.replace('Z', '+00:00')
+                if '+' in dt_str_clean:
+                    dt_str_clean = dt_str_clean.split('+')[0]
+                dt = datetime.fromisoformat(dt_str_clean)
+                
+                # Busca iterando para evitar problemas de fuso horário no SQLite
+                local_ags = Agendamento.query.filter(Agendamento.status != novo_status).all()
+                for a in local_ags:
+                    if a.data_hora.strftime('%Y-%m-%d %H:%M') == dt.strftime('%Y-%m-%d %H:%M'):
+                        a.status = novo_status
+                        db.session.commit()
+                        print(f"[Sync] SQLite ID {a.id} sincronizado para {novo_status}.")
+                        break
+            except Exception as e:
+                print(f"[Sync] ⚠️ Erro ao buscar SQLite por data_hora: {e}")
+
+    except Exception as e:
+        print(f"[Sync] ⚠️ Erro geral na sincronização: {e}")
 
 @agendamentos_bp.route('/api/agenda/hoje', methods=['GET'])
 @login_required
