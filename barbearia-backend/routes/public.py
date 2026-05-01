@@ -93,26 +93,38 @@ def get_horarios_public():
     try:
         from supabase_client import get_supabase
         sb = get_supabase()
+        
+        # 1. Busca todos os serviços do Supabase para lidar com o mismatch de ID
+        # (ChatWeb usa IDs do Supabase, que podem diferir do SQLite local)
+        servicos_supabase = sb.table('servicos').select('id, duracao_minutos').execute()
+        sup_duracao_map = {str(s['id']): s['duracao_minutos'] for s in (servicos_supabase.data or [])}
+        
         result = sb.table('agendamentos').select('data_hora, servico_id').eq('status', 'agendado').execute()
         
         for row in (result.data or []):
             try:
-                dt = datetime.fromisoformat(row['data_hora'].replace('Z', '+00:00').replace('+00:00', ''))
+                # Remove Z ou +00:00 para parsing simples (mantendo compatibilidade com ISO)
+                dt_str = row['data_hora'].replace('Z', '+00:00').split('+')[0]
+                dt = datetime.fromisoformat(dt_str)
+                
                 if dt.date() == data_consulta:
-                    # Busca duração do serviço diretamente do Supabase
-                    sid = row.get('servico_id')
-                    d_oc = 30
-                    if sid:
-                        s_result = sb.table('servicos').select('duracao_minutos').eq('id', sid).execute()
-                        if s_result.data:
-                            d_oc = s_result.data[0]['duracao_minutos']
+                    # Busca duração usando o ID do Supabase
+                    sid = str(row.get('servico_id'))
+                    d_oc = sup_duracao_map.get(sid)
+                    
+                    if d_oc is None:
+                        # Fallback: tenta buscar no SQLite local se for um ID numérico
+                        s_local = Servico.query.get(sid) if sid.isdigit() else None
+                        d_oc = s_local.duracao_minutos if s_local else 30
+                    
                     f_oc = dt + timedelta(minutes=d_oc)
                     
                     # Evita duplicatas (mesmo horário já pode estar no SQLite)
                     ja_existe = any(abs((oc[0] - dt).total_seconds()) < 60 for oc in ocupados)
                     if not ja_existe:
                         ocupados.append((dt, f_oc))
-            except Exception:
+            except Exception as e:
+                print(f"[Supabase Loop] Erro ao processar agendamento: {e}")
                 continue
     except Exception as e:
         print(f"[Horários] ⚠️ Erro ao consultar Supabase: {e}")
@@ -193,7 +205,7 @@ def post_agendar_public():
         db.func.date(Agendamento.data_hora) == data_hora.strftime('%Y-%m-%d'),
         Agendamento.status == 'agendado'
     ).all()
-    
+
     for ag in agendamentos_dia:
         # Verifica sobreposição de horários
         duracao_ag_existente = ag.servico.duracao_minutos if ag.servico else 30
@@ -201,6 +213,31 @@ def post_agendar_public():
            ag.data_hora < data_hora + timedelta(minutes=duracao):
             print(f"⚠️ CONFLITO DETECTADO: {data_hora} colide com agendamento ID {ag.id} às {ag.data_hora}")
             return jsonify({'error': 'Desculpe, este horário acabou de ser preenchido. Por favor, escolha outro.'}), 409
+
+    # ── Verifica conflito também no Supabase (ChatWeb cria direto na nuvem) ───
+    try:
+        from supabase_client import get_supabase
+        sb = get_supabase()
+        dia_str = data_hora.strftime('%Y-%m-%d')
+        sup_result = sb.table('agendamentos').select('id, data_hora, servico_id').eq('status', 'agendado').gte('data_hora', f'{dia_str}T00:00:00').lte('data_hora', f'{dia_str}T23:59:59').execute()
+        for sup_ag in (sup_result.data or []):
+            try:
+                sup_dt = datetime.fromisoformat(sup_ag['data_hora'].replace('Z', '+00:00').replace('+00:00', ''))
+                # Busca duração do serviço no Supabase
+                sid = sup_ag.get('servico_id')
+                duracao_sup = 30
+                if sid:
+                    s_result = sb.table('servicos').select('duracao_minutos').eq('id', sid).execute()
+                    if s_result.data:
+                        duracao_sup = s_result.data[0]['duracao_minutos']
+                sup_fim = sup_dt + timedelta(minutes=duracao_sup)
+                if data_hora < sup_fim and sup_dt < data_hora + timedelta(minutes=duracao):
+                    print(f"⚠️ CONFLITO SUPABASE: {data_hora} colide com agendamento Supabase ID {sup_ag['id']}")
+                    return jsonify({'error': 'Desculpe, este horário acabou de ser preenchido. Por favor, escolha outro.'}), 409
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"[Conflito Supabase] ⚠️ Erro ao verificar: {e}")
 
     # 3. Cria o agendamento no SQLite
     novo_agendamento = Agendamento(
@@ -292,5 +329,8 @@ def notificar_agendamento():
 
     from utils.notifications import enviar_notificacao_novo_agendamento
     sucesso = enviar_notificacao_novo_agendamento(cliente_nome, servico_nome, data_hora_fmt)
-    
-    return jsonify({'success': sucesso}), 200
+
+    if sucesso:
+        return jsonify({'success': True, 'notificado': True}), 200
+    else:
+        return jsonify({'success': False, 'notificado': False, 'error': 'FCM não disponível'}), 503

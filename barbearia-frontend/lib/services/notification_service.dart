@@ -1,8 +1,11 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
+  static final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
   static Future<void> registrarToken() async {
     try {
       // Garante permissão antes de pedir token
@@ -52,9 +55,26 @@ class NotificationService {
     }
   }
 
-  static void configurarHandlers() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
+  static void configurarHandlers(FlutterLocalNotificationsPlugin plugin) {
+    // iOS: foreground notifications need to be handled with a local display
+    FirebaseMessaging.onMessage.listen((RemoteMessage msg) async {
       debugPrint('[FCM] Foreground: ${msg.notification?.title}');
+      // Exibe notificação local para iOS foreground (no silent data-only messages)
+      if (msg.notification != null && !kIsWeb) {
+        await plugin.show(
+          msg.notification!.hashCode,
+          msg.notification!.title,
+          msg.notification!.body,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'high_importance_channel',
+              'Agendamentos Klipper',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+          ),
+        );
+      }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage msg) {

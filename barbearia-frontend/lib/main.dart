@@ -115,6 +115,9 @@ void main() async {
       // ✅ Registra o token no Supabase para notificações push
       await NotificationService.registrarToken();
 
+      // ✅ Configura handlers de foreground com o plugin
+      NotificationService.configurarHandlers(flutterLocalNotificationsPlugin);
+
       // Solicitar permissão de notificações
       await FirebaseMessaging.instance.requestPermission(
         alert: true,

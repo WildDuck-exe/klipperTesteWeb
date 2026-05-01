@@ -261,7 +261,26 @@ class ApiService extends ChangeNotifier {
             notifyListeners();
           },
         )
-        .subscribe();
+        .onSystemEvent(
+          SupabaseSystemEvents.REALTIME_SUBSCRIPTION_SIGNED_IN,
+          callback: (payload) {
+            debugPrint('[Realtime] Reconectado automaticamente');
+          },
+        )
+        .subscribe((status, [error]) {
+      debugPrint('[Realtime] Status do canal: $status');
+      if (status == 'SUBSCRIBED') {
+        debugPrint('[Realtime] ✅ Canal ativo');
+      } else if (status == 'CHANNEL_ERROR' || status == 'TIMED_OUT') {
+        debugPrint('[Realtime] ⚠️ Erro no canal ($status) — tentando reconectar em 5s');
+        Future.delayed(const Duration(seconds: 5), () {
+          if (_isAuthenticated) {
+            pararRealtime();
+            iniciarRealtime();
+          }
+        });
+      }
+    });
     debugPrint('[Realtime] Channel subscribed');
   }
 
